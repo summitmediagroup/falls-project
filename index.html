@@ -1016,7 +1016,7 @@ function renderNav(){
 }
 function showPage(nm){
 
-  if(nm === 'journal' && (!ME || !ME.is_pro)){
+  if(nm === 'journal' && !ME){
     upgradeToPro();
     return;
   }
