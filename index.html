@@ -1076,10 +1076,10 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
-  sb.auth.onAuthStateChange(function(event, session){
+  sb.auth.onAuthStateChange(async function(event, session){
     if(session && session.user){
 
-  const { data } = await supabase
+  const { data } = await sb
     .from('profiles')
     .select('is_pro')
     .eq('id', session.user.id)
@@ -1107,8 +1107,6 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
     renderNav();renderExplore();
     toast('Connected, but Supabase setup still needs a little polish');
   }
-});
-
 </script>
 
 <script>
