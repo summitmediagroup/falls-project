@@ -593,21 +593,21 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
-  var s=await sb.auth.getSession();
-  var user=s.data&&s.data.session&&s.data.session.user;
-  if(!user){ME=null;return;}
-  var prof=await ensureProfile(user);
-  var isPro = !!(prof && prof.plan === 'pro');
-  try{
-    var proRes = await sb.from('profiles').select('is_pro').eq('id', user.id).maybeSingle();
-    if(!proRes.error && proRes.data){ isPro = !!proRes.data.is_pro; }
-  }catch(e){}
-  ME={
-    id:user.id,
-    name:(prof&&prof.name)||user.email.split('@')[0],
-    email:user.email,
-    plan:(prof&&prof.plan)||'free',
-    is_pro:isPro
+  var s = await sb.auth.getSession();
+  var user = s.data && s.data.session && s.data.session.user;
+
+  if(!user){
+    ME = null;
+    return;
+  }
+
+  var prof = await ensureProfile(user);
+
+  ME = {
+    id: user.id,
+    name: (prof && prof.name) || user.email.split('@')[0],
+    email: user.email,
+    is_pro: true // TEMPORARY for testing
   };
 }
 
