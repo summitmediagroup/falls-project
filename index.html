@@ -309,7 +309,30 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <button class="ntab" id="t-explore">Stories</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
-  <div id="auth-area"></div>
+  <div id="auth-area" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <button onclick="openAuth()" style="
+    background:transparent;
+    color:#F3EBDD;
+    border:1px solid rgba(243,235,221,0.25);
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:14px;
+    cursor:pointer;
+    white-space:nowrap;
+  ">Sign In</button>
+
+  <button onclick="upgradeToPro()" style="
+    background:#C9B37E;
+    color:#132019;
+    border:none;
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  ">Unlock Explorer Journal • $3.99</button>
+</div>
 </nav>
 <div id="app">
 <div id="pg-land" class="page on">
