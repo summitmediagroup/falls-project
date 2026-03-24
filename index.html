@@ -309,30 +309,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <button class="ntab" id="t-explore">Explore</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
-  <div id="auth-area" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <button id="btn-signin" style="
-    background:transparent;
-    color:#F3EBDD;
-    border:1px solid rgba(243,235,221,0.25);
-    padding:10px 16px;
-    border-radius:999px;
-    font-size:14px;
-    cursor:pointer;
-    white-space:nowrap;
-  ">Sign In</button>
-
-  <button onclick="upgradeToPro()" style="
-    background:#C9B37E;
-    color:#132019;
-    border:none;
-    padding:10px 16px;
-    border-radius:999px;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    white-space:nowrap;
-  ">Unlock Explorer Journal • $3.99</button>
-</div>
+  <div id="auth-area"></div>
 </nav>
 <div id="app">
 <div id="pg-land" class="page on">
@@ -620,7 +597,18 @@ async function hydrateSession(){
   var user=s.data&&s.data.session&&s.data.session.user;
   if(!user){ME=null;return;}
   var prof=await ensureProfile(user);
-  ME={id:user.id,name:(prof&&prof.name)||user.email.split('@')[0],email:user.email,plan:(prof&&prof.plan)||'free'};
+  var isPro = !!(prof && prof.plan === 'pro');
+  try{
+    var proRes = await sb.from('profiles').select('is_pro').eq('id', user.id).maybeSingle();
+    if(!proRes.error && proRes.data){ isPro = !!proRes.data.is_pro; }
+  }catch(e){}
+  ME={
+    id:user.id,
+    name:(prof&&prof.name)||user.email.split('@')[0],
+    email:user.email,
+    plan:(prof&&prof.plan)||'free',
+    is_pro:isPro
+  };
 }
 
 function mapPhotos(rows){
@@ -980,24 +968,27 @@ async function doLogout(){
 }
 function renderNav(){
   var el=document.getElementById('auth-area');
+  if(!el) return;
+
   if(ME && ME.is_pro){
-    el.innerHTML='<div class="nav-user"><div class="nav-av">'+esc(ME.name[0].toUpperCase())+'</div><span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name)+'</span><button class="btn-ghost" id="btn-lo">Sign Out</button></div>';
-    var lo=document.getElementById('btn-lo');if(lo)lo.addEventListener('click',doLogout);
+    el.innerHTML =
+      '<div class="nav-user">' +
+        '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
+        '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
+        '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
+      '</div>';
+    var lo=document.getElementById('btn-lo');
+    if(lo) lo.addEventListener('click',doLogout);
   } else {
-    el.innerHTML='<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button><button onclick="upgradeToPro()" style="
-  background:#C9B37E;
-  color:#132019;
-  border:none;
-  padding:10px 16px;
-  border-radius:999px;
-  font-size:14px;
-  font-weight:700;
-  cursor:pointer;
-">
-  Unlock Explorer Journal • $3.99
-</button>
-    var si=document.getElementById('btn-signin'),jo=document.getElementById('btn-jo');
-    if(si)si.addEventListener('click',openAuth);if(jo)jo.addEventListener('click',openAuth);
+    el.innerHTML =
+      '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
+      '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
+
+    var si=document.getElementById('btn-signin');
+    var up=document.getElementById('btn-upgrade');
+
+    if(si) si.addEventListener('click',openAuth);
+    if(up) up.addEventListener('click',upgradeToPro);
   }
 }
 function showPage(nm){
@@ -1078,35 +1069,26 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
 
   sb.auth.onAuthStateChange(async function(event, session){
     if(session && session.user){
-
-  const { data } = await sb
-    .from('profiles')
-    .select('is_pro')
-    .eq('id', session.user.id)
-    .single();
-
-  ME = {
-    id: session.user.id,
-    name: (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0],
-    email: session.user.email,
-    is_pro: data && data.is_pro ? true : false
-  };
-
-  renderNav();
-} else if(event==='SIGNED_OUT'){
-      ME=null;DB={users:{},posts:{}};renderNav();renderList();renderExplore();renderJournal();
+      await hydrateSession();
+      renderNav();
+      await refreshAllData();
+    } else if(event==='SIGNED_OUT'){
+      ME=null;DB={users:{},posts:{}};
+      renderNav();renderList();renderExplore();renderJournal();
     }
   });
 
-  try {
-    await hydrateSession();
-    renderNav();
-    await refreshAllData();
-  } catch(err) {
-    console.error(err);
-    renderNav();renderExplore();
-    toast('Connected, but Supabase setup still needs a little polish');
-  }
+  (async function(){
+    try {
+      await hydrateSession();
+      renderNav();
+      await refreshAllData();
+    } catch(err) {
+      console.error(err);
+      renderNav();renderExplore();
+      toast('Connected, but Supabase setup still needs a little polish');
+    }
+  })()
 </script>
 
 <script>
