@@ -1078,9 +1078,22 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
 
   sb.auth.onAuthStateChange(function(event, session){
     if(session && session.user){
-      ME={id:session.user.id,name:(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0],email:session.user.email};
-      renderNav();
-    } else if(event==='SIGNED_OUT'){
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('is_pro')
+    .eq('id', session.user.id)
+    .single();
+
+  ME = {
+    id: session.user.id,
+    name: (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0],
+    email: session.user.email,
+    is_pro: data && data.is_pro ? true : false
+  };
+
+  renderNav();
+} else if(event==='SIGNED_OUT'){
       ME=null;DB={users:{},posts:{}};renderNav();renderList();renderExplore();renderJournal();
     }
   });
