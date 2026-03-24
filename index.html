@@ -980,7 +980,7 @@ async function doLogout(){
 }
 function renderNav(){
   var el=document.getElementById('auth-area');
-  if(ME){
+  if(ME && ME.is_pro){
     el.innerHTML='<div class="nav-user"><div class="nav-av">'+esc(ME.name[0].toUpperCase())+'</div><span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name)+'</span><button class="btn-ghost" id="btn-lo">Sign Out</button></div>';
     var lo=document.getElementById('btn-lo');if(lo)lo.addEventListener('click',doLogout);
   } else {
