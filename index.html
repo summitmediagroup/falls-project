@@ -1068,27 +1068,27 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
   sb.auth.onAuthStateChange(async function(event, session){
-    if(session && session.user){
-      await hydrateSession();
-      renderNav();
-      await refreshAllData();
-    } else if(event==='SIGNED_OUT'){
-      ME=null;DB={users:{},posts:{}};
-      renderNav();renderList();renderExplore();renderJournal();
-    }
-  
+  if(session && session.user){
+    await hydrateSession();
+    renderNav();
+    await refreshAllData();
+  } else if(event==='SIGNED_OUT'){
+    ME=null;DB={users:{},posts:{}};
+    renderNav();renderList();renderExplore();renderJournal();
+  }
+});
 
-  (async function(){
-    try {
-      await hydrateSession();
-      renderNav();
-      await refreshAllData();
-    } catch(err) {
-      console.error(err);
-      renderNav();renderExplore();
-      toast('Connected, but Supabase setup still needs a little polish');
-    }
-  })();
+(async function(){
+  try {
+    await hydrateSession();
+    renderNav();
+    await refreshAllData();
+  } catch(err) {
+    console.error(err);
+    renderNav();renderExplore();
+    toast('Connected, but Supabase setup still needs a little polish');
+  }
+})();
 </script>
 
 <script>
