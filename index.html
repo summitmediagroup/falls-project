@@ -309,7 +309,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <button class="ntab" id="t-explore">Explore</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
-  <div id="auth-area">
+  <div id="auth-area" style="display:flex;align-items:center;gap:10px;">
   <button id="btn-signin" style="
     background:transparent;
     color:#F3EBDD;
@@ -1006,6 +1006,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(tj)tj.addEventListener('click',function(){goPage('journal');});
   // Landing buttons
   var bm=document.getElementById('btn-map'),ba=document.getElementById('btn-auth-land'),ba2=document.getElementById('btn-auth-land2');
+  const btnSignin = document.getElementById('btn-signin');
+if (btnSignin) btnSignin.addEventListener('click', openAuth);
   if(bm)bm.addEventListener('click',function(){goPage('map');});
   if(ba)ba.addEventListener('click',upgradeToPro);if(ba2)ba2.addEventListener('click',upgradeToPro);
   // Filter tabs
