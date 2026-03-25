@@ -584,7 +584,21 @@ function dataUrlToBlob(dataUrl){
   return new Blob([arr],{type:mime});
 }
 function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
-function profileIsPro(profile){return !!(profile && (profile.is_pro===true || profile.plan==='pro'));}
+function asBool(v){
+  if(v===true || v===1) return true;
+  if(typeof v==='string'){
+    var s=v.trim().toLowerCase();
+    return s==='true' || s==='t' || s==='1' || s==='yes' || s==='y';
+  }
+  return false;
+}
+function profileIsPro(profile){
+  if(!profile) return false;
+  var plan=String(profile.plan||'').trim().toLowerCase();
+  var status=String(profile.subscription_status||'').trim().toLowerCase();
+  var hasActiveStatus=status==='active' || status==='trialing';
+  return asBool(profile.is_pro) || plan==='pro' || plan==='paid' || plan==='premium' || hasActiveStatus;
+}
 function upgradeToPro(){window.location.href="https://buy.stripe.com/4gMeVd9tAgHgdk5eX8a3u00";}
 function getActivityBadge(logCount){
   if(logCount>=25) return {label:'Explorer',icon:'🔥'};
