@@ -1077,13 +1077,16 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
-  sb.auth.onAuthStateChange(function(event, session){
+  sb.auth.onAuthStateChange(async function(event, session){
   if(session && session.user){
-    setTimeout(async function(){
-      await hydrateSession();
+    await hydrateSession();
+
+    // FORCE UI refresh AFTER ME is set
+    setTimeout(function(){
       renderNav();
-      await refreshAllData();
-    }, 0);
+      refreshAllData();
+    }, 50);
+
   } else if(event === 'SIGNED_OUT'){
     ME = null;
     DB = {users:{}, posts:{}};
