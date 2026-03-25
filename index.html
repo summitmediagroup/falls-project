@@ -607,7 +607,7 @@ async function hydrateSession(){
     name:(prof&&prof.name)||user.email.split('@')[0],
     email:user.email,
     plan:(prof&&prof.plan)||'free',
-    is_pro: !!(prof && prof.is_pro===true)
+    is_pro: (prof && prof.is_pro === true)
   };
 }
 
