@@ -618,7 +618,17 @@ async function openBillingPortal(){
     window.location.href=data.url;
   } catch(err){
     console.error(err);
-    toast(err && err.message ? err.message : 'Could not open subscription settings');
+    var msg='Could not open subscription settings';
+    if(err && err.context && typeof err.context.json==='function'){
+      try{
+        var body=await err.context.json();
+        if(body && body.error) msg=body.error;
+      } catch(_ignore){}
+    }
+    if(msg==='Could not open subscription settings' && err && err.message){
+      msg=err.message;
+    }
+    toast(msg);
   } finally {
     var btn=document.getElementById('btn-manage-sub-nav')||document.getElementById('btn-manage-sub-journal');
     if(btn){
