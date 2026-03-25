@@ -968,34 +968,40 @@ async function doLogout(){
   renderNav();renderList();renderJournal();renderExplore();FALLS.forEach(function(f){refreshMk(f.id);});toast('Signed out');
 }
 function renderNav(){
-  var el=document.getElementById('auth-area');
-  if(!el) return;
+  try {
+    var el=document.getElementById('auth-area');
+    if(!el) return;
 
-  if(ME){
-  el.innerHTML =
-    '<div class="nav-user">' +
-      '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
-      '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
-      '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
-      (ME.is_pro ? '' : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
-    '</div>';
+    if(ME){
+      el.innerHTML =
+        '<div class="nav-user">' +
+          '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
+          '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
+          '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
+          (ME.is_pro ? '' : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
+        '</div>';
 
-  var lo=document.getElementById('btn-lo');
-  if(lo) lo.addEventListener('click',doLogout);
+      var lo=document.getElementById('btn-lo');
+      if(lo) lo.addEventListener('click',doLogout);
 
-  var up=document.getElementById('btn-upgrade');
-  if(up) up.addEventListener('click',upgradeToPro);
+      var up=document.getElementById('btn-upgrade');
+      if(up) up.addEventListener('click',upgradeToPro);
 
-} else {
-  el.innerHTML =
-    '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
-    '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
+    } else {
+      el.innerHTML =
+        '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
+        '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
 
-  var si=document.getElementById('btn-signin');
-  var up=document.getElementById('btn-upgrade');
+      var si=document.getElementById('btn-signin');
+      var up=document.getElementById('btn-upgrade');
 
-  if(si) si.addEventListener('click',openAuth);
-  if(up) up.addEventListener('click',upgradeToPro);
+      if(si) si.addEventListener('click',openAuth);
+      if(up) up.addEventListener('click',upgradeToPro);
+    }
+
+  } catch(e) {
+    console.error('renderNav crashed:', e);
+  }
 }
 }
 function showPage(nm){
