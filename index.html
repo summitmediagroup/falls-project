@@ -145,6 +145,17 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .jmast-eye{font-family:"Cormorant",serif;font-size:.56rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
 .jmast h1{font-family:"Cormorant",serif;font-size:clamp(1.3rem,2.5vw,1.9rem);font-weight:300;color:var(--cream);margin-bottom:4px;}
 .jmast-sub{font-size:.74rem;color:var(--mist);margin-bottom:18px;}
+.jmast-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px;}
+.jbadge-row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;}
+.jbadge-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--bdr);min-width:0;}
+.jbadge-card.priv{border-color:rgba(200,150,60,.24);box-shadow:inset 0 0 0 1px rgba(200,150,60,.06);}
+.jbadge-card.pub{border-color:rgba(90,122,92,.28);box-shadow:inset 0 0 0 1px rgba(90,122,92,.08);}
+.jbadge-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.06);font-size:1rem;flex-shrink:0;}
+.jbadge-copy{min-width:0;}
+.jbadge-k{font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:3px;}
+.jbadge-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;}
+.jbadge-card.priv .jbadge-v,.jbadge-card.priv .jbadge-icon{color:var(--gold);}
+.jbadge-card.pub .jbadge-v,.jbadge-card.pub .jbadge-icon{color:var(--sage);}
 .jstats{display:flex;gap:1px;}
 .jstat{padding:11px 17px;background:var(--raised);border:1px solid var(--bdr);text-align:center;flex:1;max-width:125px;}
 .jstat-n{font-family:"Cormorant",serif;font-size:1.65rem;font-weight:300;color:var(--cream);line-height:1;}
@@ -584,22 +595,46 @@ function dataUrlToBlob(dataUrl){
   return new Blob([arr],{type:mime});
 }
 function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
-function asBool(v){
-  if(v===true || v===1) return true;
-  if(typeof v==='string'){
-    var s=v.trim().toLowerCase();
-    return s==='true' || s==='t' || s==='1' || s==='yes' || s==='y';
-  }
-  return false;
-}
 function profileIsPro(profile){
   if(!profile) return false;
   var plan=String(profile.plan||'').trim().toLowerCase();
-  var status=String(profile.subscription_status||'').trim().toLowerCase();
-  var hasActiveStatus=status==='active' || status==='trialing';
-  return asBool(profile.is_pro) || plan==='pro' || plan==='paid' || plan==='premium' || hasActiveStatus;
+  return plan==='pro';
 }
 function upgradeToPro(){window.location.href="https://buy.stripe.com/4gMeVd9tAgHgdk5eX8a3u00";}
+async function openBillingPortal(){
+  try{
+    if(!ME || !ME.is_pro){upgradeToPro();return;}
+    var sessionRes=await sb.auth.getSession();
+    var session=sessionRes.data&&sessionRes.data.session;
+    if(!session || !session.access_token){openAuth();return;}
+    var btn=document.getElementById('btn-manage-sub-nav')||document.getElementById('btn-manage-sub-journal');
+    if(btn){
+      btn.disabled=true;
+      btn.textContent='Opening...';
+    }
+    var res=await fetch(SUPABASE_URL+'/functions/v1/stripe-billing-portal',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({returnUrl:window.location.href})
+    });
+    var data=await res.json().catch(function(){return {};});
+    if(!res.ok) throw new Error((data&&data.error)||'Could not open billing portal');
+    if(!data || !data.url) throw new Error('Billing portal link missing');
+    window.location.href=data.url;
+  } catch(err){
+    console.error(err);
+    toast(err && err.message ? err.message : 'Could not open subscription settings');
+  } finally {
+    var btn=document.getElementById('btn-manage-sub-nav')||document.getElementById('btn-manage-sub-journal');
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Manage Subscription';
+    }
+  }
+}
 function getActivityBadge(logCount){
   if(logCount>=25) return {label:'Explorer',icon:'🔥'};
   if(logCount>=10) return {label:'Waterfall Hunter',icon:'🌊'};
@@ -608,7 +643,7 @@ function getActivityBadge(logCount){
   return null;
 }
 function getFounderBadge(profile){
-  if(profile && (profile.founding_explorer===true || profile.is_founder===true || profile.founder===true)){
+  if(profile && profile.is_founding_explorer){
     return {label:'Founding Explorer',icon:'⭐'};
   }
   return null;
@@ -616,6 +651,25 @@ function getFounderBadge(profile){
 function makeBadgeMarkup(badge, tone){
   if(!badge) return '';
   return '<span class="pbadge '+tone+'">'+esc(badge.icon+' '+badge.label)+'</span>';
+}
+function makeBadgeCardMarkup(kind, badge){
+  if(!badge) return '';
+  return '<div class="jbadge-card '+kind+'">'
+    +'<div class="jbadge-icon">'+esc(badge.icon)+'</div>'
+    +'<div class="jbadge-copy">'
+      +'<div class="jbadge-k">'+esc(kind==='pub'?'Founding Status':'Activity Badge')+'</div>'
+      +'<div class="jbadge-v">'+esc(badge.label)+'</div>'
+    +'</div>'
+  +'</div>';
+}
+async function isFoundingExplorer(profile){
+  if(!profile || !profile.id || !profile.created_at) return false;
+  var res=await sb.from('profiles').select('id',{count:'exact',head:true}).lte('created_at',profile.created_at);
+  if(res.error){
+    console.error(res.error);
+    return false;
+  }
+  return !!res.count && res.count<=100;
 }
 
 async function ensureProfile(user){
@@ -653,14 +707,15 @@ async function hydrateSession(){
   var user=s.data&&s.data.session&&s.data.session.user;
   if(!user){ME=null;return;}
   var prof=await ensureProfile(user);
+  var isFounder=await isFoundingExplorer(prof);
   ME={
     id:user.id,
     name:(prof&&prof.name)||user.email.split('@')[0],
     email:user.email,
     plan:(prof&&prof.plan)||'free',
     is_pro:profileIsPro(prof),
-    current_period_end:(prof&&prof.current_period_end)||null,
-    subscription_status:(prof&&prof.subscription_status)||null
+    created_at:(prof&&prof.created_at)||null,
+    is_founding_explorer:isFounder
   };
 }
 
@@ -957,18 +1012,21 @@ function renderJournal(){
   var avg=cnt?sum/cnt:0;
   var activityBadge=getActivityBadge(vis);
   var founderBadge=getFounderBadge(ME);
-  var badgeMarkup=[makeBadgeMarkup(activityBadge,'priv'),makeBadgeMarkup(founderBadge,'pub')].filter(Boolean).join('');
+  var badgeCards=[makeBadgeCardMarkup('priv',activityBadge),makeBadgeCardMarkup('pub',founderBadge)].filter(Boolean).join('');
 
   mast.innerHTML='<div class="jmast-eye">Personal Record</div>'
     +'<h1>'+esc(ME.name)+'&#39;s Trail Journal</h1>'
     +'<p class="jmast-sub">Log each waterfall, choose what stays private, and share the stories you want the community to see.</p>'
-    +(badgeMarkup?'<div class="je-meta" style="margin-bottom:18px">'+badgeMarkup+'</div>':'')
+    +'<div class="jmast-actions"><button class="btn-ghost" id="btn-manage-sub-journal">Manage Subscription</button></div>'
+    +(badgeCards?'<div class="jbadge-row">'+badgeCards+'</div>':'')
     +'<div class="jstats">'
       +'<div class="jstat"><div class="jstat-n">'+vis+'</div><div class="jstat-l">Visited</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+Math.max(total-vis,0)+'</div><div class="jstat-l">Remaining</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+total+'</div><div class="jstat-l">Total Falls</div></div>'
       +(avg>0?'<div class="jstat"><div class="jstat-n" style="color:var(--gold)">'+avg.toFixed(1)+'&#9733;</div><div class="jstat-l">Avg Rating</div></div>':'')
     +'</div>';
+  var manageBtn=document.getElementById('btn-manage-sub-journal');
+  if(manageBtn) manageBtn.addEventListener('click',openBillingPortal);
   if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
   ent.innerHTML='';
   logs.forEach(function(e){
@@ -1049,7 +1107,9 @@ function renderNav(){
           '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
           '<span class="auth-name">'+esc(ME.name||ME.email)+'</span>' +
           '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
-          (ME.is_pro ? '' : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
+          (ME.is_pro
+            ? '<button class="btn-ghost" id="btn-manage-sub-nav" style="margin-left:8px">Manage Subscription</button>'
+            : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
         '</div>';
 
       var lo=document.getElementById('btn-lo');
@@ -1057,6 +1117,8 @@ function renderNav(){
 
       var up=document.getElementById('btn-upgrade');
       if(up) up.addEventListener('click',upgradeToPro);
+      var manage=document.getElementById('btn-manage-sub-nav');
+      if(manage) manage.addEventListener('click',openBillingPortal);
 
     } else {
       el.innerHTML =
