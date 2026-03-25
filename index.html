@@ -108,6 +108,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .chip{font-size:.55rem;padding:2px 6px;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.36);}
 .chip.h{border-color:rgba(200,80,40,.4);color:rgba(200,120,80,.9);}
 .chip.w{border-color:rgba(74,124,150,.4);color:var(--ice);}
+.chip.s{border-color:rgba(200,150,60,.35);color:var(--gold);}
 .fi-date{font-size:.57rem;color:var(--gold);margin-top:3px;}
 .fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;}
 .fi-tick{position:absolute;top:7px;right:7px;width:14px;height:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--bg);opacity:0;transition:opacity .2s;}
@@ -204,6 +205,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .mx:hover{background:rgba(200,150,60,.22);color:var(--gold);}
 #m-wf{width:570px;}
 .wf-hero{height:210px;position:relative;overflow:hidden;background:var(--raised);}
+.wf-back{position:absolute;top:11px;left:11px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.72);padding:6px 10px;font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;z-index:5;border-radius:2px;}
+.wf-back:hover{background:rgba(200,150,60,.22);color:var(--gold);}
 .wf-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.55) saturate(.7);}
 .wf-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,20,16,1) 0%,rgba(12,20,16,.25) 60%,transparent 100%);}
 .wf-info{position:absolute;bottom:16px;left:20px;right:48px;}
@@ -217,7 +220,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wchip.g{border-color:rgba(200,150,60,.4);color:var(--gold);}
 .wf-desc{font-size:.8rem;line-height:1.72;color:rgba(255,255,255,.46);margin-bottom:20px;}
 .sec-hd{font-family:"Cormorant",serif;font-size:.55rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid rgba(200,150,60,.15);}
-.mpost{background:rgba(255,255,255,.03);border:1px solid var(--bdr);padding:10px 12px;margin-bottom:7px;}
+.mpost{background:rgba(255,255,255,.03);border:1px solid var(--bdr);padding:10px 12px;margin-bottom:7px;cursor:pointer;}
 .mpost-hd{display:flex;justify-content:space-between;margin-bottom:4px;}
 .mpost-auth{font-size:.66rem;font-weight:500;color:var(--mist);}
 .mpost-dt{font-size:.58rem;color:rgba(255,255,255,.2);}
@@ -226,6 +229,11 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .exlog{background:rgba(200,150,60,.06);border:1px solid rgba(200,150,60,.18);padding:12px;margin-bottom:15px;}
 .exlog-meta{font-size:.62rem;color:var(--gold);margin-bottom:4px;}
 .exlog-txt{font-size:.75rem;color:rgba(255,255,255,.44);line-height:1.55;margin-bottom:6px;}
+.wf-gate{background:rgba(200,150,60,.06);border:1px solid rgba(200,150,60,.18);padding:16px 15px;margin-top:10px;margin-bottom:2px;}
+.wf-gate h3{font-family:"Cormorant",serif;font-size:1.25rem;font-weight:300;color:var(--cream);margin-bottom:6px;}
+.wf-gate p{font-size:.74rem;line-height:1.6;color:rgba(255,255,255,.42);margin-bottom:12px;}
+.wf-gate-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.mpost-link{margin-top:7px;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
 .lform{display:flex;flex-direction:column;gap:10px;}
 .frow{display:flex;gap:8px;}
 .fg{display:flex;flex-direction:column;gap:3px;flex:1;}
@@ -395,6 +403,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
           <button class="ftab on" id="f-all">All</button>
           <button class="ftab" id="f-visited">Visited</button>
           <button class="ftab" id="f-unvisited">To Visit</button>
+          <button class="ftab" id="f-saved">Saved</button>
         </div>
         <div class="sb-actions">
           <button class="sb-near" id="btn-near-me">Near Me</button>
@@ -430,6 +439,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 <div class="ov" id="ov-wf">
 <div class="modal" id="m-wf">
   <button class="mx" id="close-wf">&times;</button>
+  <button class="wf-back" id="back-wf">Back</button>
   <div class="wf-hero"><div class="wf-bg" id="wf-bg"></div><div class="wf-grad"></div>
     <div class="wf-info"><div class="wf-reg" id="wf-reg"></div><div class="wf-nm" id="wf-nm"></div></div>
   </div>
@@ -439,6 +449,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="wf-actions" id="wf-actions"></div>
     <div id="wf-comm"></div>
     <div id="wf-exlog"></div>
+    <div id="wf-gate"></div>
     <div class="sec-hd" id="wf-form-hd">Log Your Visit</div>
     <div class="lform" id="wf-form">
       <div class="frow">
@@ -625,11 +636,39 @@ var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
+var SAVED_KEY='falls_saved_to_visit_v1';
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function isVis(id){return !!(ME&&DB.users[ME.id]&&DB.users[ME.id].logs&&DB.users[ME.id].logs[id]);}
 function getLog(id){return ME?((DB.users[ME.id]||{}).logs||{})[id]||null:null;}
+function getSavedFalls(){
+  try{
+    var raw=localStorage.getItem(SAVED_KEY);
+    var list=raw?JSON.parse(raw):[];
+    return Array.isArray(list)?list:[];
+  } catch(err){
+    console.error('saved falls load failed:',err);
+    return [];
+  }
+}
+function setSavedFalls(list){
+  try{
+    localStorage.setItem(SAVED_KEY,JSON.stringify(list));
+  } catch(err){
+    console.error('saved falls save failed:',err);
+  }
+}
+function isSaved(id){return getSavedFalls().indexOf(id)!==-1;}
+function toggleSaved(id){
+  var list=getSavedFalls();
+  var idx=list.indexOf(id);
+  var saved=idx===-1;
+  if(saved) list.unshift(id);
+  else list.splice(idx,1);
+  setSavedFalls(list);
+  return saved;
+}
 function mapLabel(v){return encodeURIComponent(String(v||'Waterfall'));} 
 function googleMapsUrl(f){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(f.lat+','+f.lng)+'&travelmode=driving';}
 function appleMapsUrl(f){return 'https://maps.apple.com/?daddr='+encodeURIComponent(f.lat+','+f.lng)+'&dirflg=d&q='+mapLabel(f.name);}
@@ -1007,6 +1046,7 @@ function renderList(){
     var haystack=[f.name,f.region,f.state,f.state_name].join(' ').toLowerCase();
     if(fMode==='visited'&&!isVis(f.id))return false;
     if(fMode==='unvisited'&&isVis(f.id))return false;
+    if(fMode==='saved'&&!isSaved(f.id))return false;
     if(q && !haystack.includes(q)){
       var stateMatches=
         (q==='georgia' && state==='ga') ||
@@ -1030,13 +1070,14 @@ function renderList(){
   }
   filtered.forEach(function(f){
     var v=isVis(f.id),log=getLog(f.id);
+    var saved=isSaved(f.id);
     var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
     var thumb=log&&log.photos&&log.photos[0]?'<img class="fi-thumb" src="'+esc(log.photos[0])+'">':'<img class="fi-thumb" src="'+heroFor(f.id)+'" style="opacity:.3">';
     var near=USER_POS?'<span class="chip">'+esc(milesBetween(USER_POS.lat,USER_POS.lng,f.lat,f.lng).toFixed(0)+' mi away')+'</span>':'';
     var d=document.createElement('div');d.className='fi'+(v?' done':'');
     d.innerHTML='<div class="fi-body"><div class="fi-name">'+esc(f.name)+'</div><div class="fi-reg">'+esc(f.region)+'</div>'
       +'<div class="fi-chips"><span class="chip '+hc+'">'+esc(f.diff)+'</span><span class="chip w">'+esc(f.type)+'</span>'
-      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span>'+near+'</div>'
+      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span>'+(saved?'<span class="chip s">Saved</span>':'')+near+'</div>'
       +(log?'<div class="fi-date">&#10003; '+esc(log.date||'visited')+(log.rating?' &middot; ' + '&#9733;'.repeat(log.rating):'')+'</div>':'')
       +'</div>'+thumb+'<div class="fi-tick">&#10003;</div>';
     d.addEventListener('click',function(){openWF(f.id);});
@@ -1048,31 +1089,43 @@ function openWF(id){
   wfId=id;
   var f=FALLS.find(function(x){return x.id===id;});if(!f)return;
   var log=getLog(id);
+  var isPaid=!!(ME&&ME.is_pro);
   pPh=log&&log.photos?log.photos.slice():[];
   pStar=log&&log.rating?log.rating:0;
   pPriv=log&&log.privacy?log.privacy:'public';
   document.getElementById('wf-reg').textContent=f.region;
   document.getElementById('wf-nm').textContent=f.name;
   document.getElementById('wf-desc').textContent=f.desc;
+  var savedLabel=isSaved(id)?'Remove from Saved':'Save to Visit';
   document.getElementById('wf-actions').innerHTML=
-    '<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
+    '<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>'
+    +'<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
     +'<a class="btn-out" href="'+appleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>';
+  var saveBtn=document.getElementById('btn-save-visit');
+  if(saveBtn) saveBtn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var saved=toggleSaved(id);
+    renderList();
+    openWF(id);
+    toast(saved?'Saved to your list':'Removed from saved');
+  });
   document.getElementById('wf-bg').style.backgroundImage='url('+heroFor(id)+')';
   var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
   document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span><span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
   var pubs=Object.values(DB.posts).filter(function(p){return p.fallId===id&&p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;}).slice(0,3);
   var ce=document.getElementById('wf-comm');
   if(pubs.length){
-    var h='<div class="sec-hd">Community Reports ('+pubs.length+')</div>';
+    var h='<div class="sec-hd">Explorer Stories ('+pubs.length+')</div>';
     pubs.forEach(function(p){
       var st=p.rating?'&#9733;'.repeat(p.rating):'';
-      h+='<div class="mpost"><div class="mpost-hd"><span class="mpost-auth">'+esc(p.authorName||'Hiker')+'</span><span class="mpost-dt">'+esc(p.date||'')+'</span></div><div class="mpost-stars">'+st+'</div><div class="mpost-txt">'+esc(p.loved||p.tips||'')+'</div></div>';
+      h+='<div class="mpost" data-pid="'+p.id+'"><div class="mpost-hd"><span class="mpost-auth">'+esc(p.authorName||'Hiker')+'</span><span class="mpost-dt">'+esc(p.date||'')+'</span></div><div class="mpost-stars">'+st+'</div><div class="mpost-txt">'+esc(p.loved||p.tips||'')+'</div><div class="mpost-link">Open Story</div></div>';
     });
     ce.innerHTML=h;
   } else {
-    ce.innerHTML='<div class="sec-hd">Community Reports</div><p style="font-size:.72rem;color:rgba(255,255,255,.2);margin-bottom:14px">No reports yet &mdash; be the first to share.</p>';
+    ce.innerHTML='<div class="sec-hd">Explorer Stories</div><p style="font-size:.74rem;line-height:1.6;color:rgba(255,255,255,.28);margin-bottom:16px">No explorer has logged this one yet. Be the first to leave a trail story for the next adventurer.</p>';
   }
   var xe=document.getElementById('wf-exlog');
+  var gate=document.getElementById('wf-gate');
   if(log){
     var st=log.rating?'&#9733;'.repeat(log.rating):'';
     xe.innerHTML='<div class="sec-hd">Your Visit Log</div><div class="exlog"><div class="exlog-meta">'+esc(log.date||'Date unknown')+(log.duration?' &middot; '+esc(log.duration):'')+' '+st+'</div>'+(log.loved?'<div class="exlog-txt"><b style="opacity:.5">Loved:</b> '+esc(log.loved)+'</div>':'')+(log.tips?'<div class="exlog-txt"><b style="opacity:.5">Tips:</b> '+esc(log.tips)+'</div>':'')+'</div>';
@@ -1094,8 +1147,23 @@ function openWF(id){
     document.getElementById('f-cond').value='';document.getElementById('f-wat').value='';
   }
   renderStars();renderPriv();renderPrev();
-  document.getElementById('wf-form').querySelectorAll('input,select,textarea,button').forEach(function(x){x.disabled=!ME;});
-  document.getElementById('lg').style.display=ME?'none':'block';
+  if(!ME){
+    gate.innerHTML='<div class="wf-gate"><h3>Keep this fall on your radar</h3><p>Map browsing and explorer stories are open to everyone. Sign in when you are ready to save your list and start your own trail journal.</p><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
+  } else if(!isPaid){
+    gate.innerHTML='<div class="wf-gate"><h3>Unlock your trail journal</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build your personal waterfall record.</p><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
+  } else {
+    gate.innerHTML='';
+  }
+  document.getElementById('wf-form').style.display=isPaid?'flex':'none';
+  document.getElementById('wf-form-hd').style.display=isPaid?'block':'none';
+  document.getElementById('lg').style.display='none';
+  if(!isPaid){
+    document.getElementById('wf-form').querySelectorAll('input,select,textarea,button').forEach(function(x){x.disabled=true;});
+  } else {
+    document.getElementById('wf-form').querySelectorAll('input,select,textarea,button').forEach(function(x){x.disabled=false;});
+  }
+  var gateAuth=document.getElementById('wf-gate-auth');if(gateAuth)gateAuth.addEventListener('click',openAuth);
+  var gateUpgrade=document.getElementById('wf-gate-upgrade');if(gateUpgrade)gateUpgrade.addEventListener('click',upgradeToPro);
   if(MAP)MAP.panTo([f.lat,f.lng],{animate:true});
   openOv('ov-wf');
 }
@@ -1395,17 +1463,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(bm)bm.addEventListener('click',function(){goPage('map');});
   if(ba)ba.addEventListener('click',upgradeToPro);if(ba2)ba2.addEventListener('click',upgradeToPro);
   // Filter tabs
-  var fa=document.getElementById('f-all'),fv=document.getElementById('f-visited'),fu=document.getElementById('f-unvisited');
-  function setFilter(m){fMode=m;[fa,fv,fu].forEach(function(x){if(x)x.classList.remove('on');});document.getElementById('f-'+m).classList.add('on');renderList();}
+  var fa=document.getElementById('f-all'),fv=document.getElementById('f-visited'),fu=document.getElementById('f-unvisited'),fs=document.getElementById('f-saved');
+  function setFilter(m){fMode=m;[fa,fv,fu,fs].forEach(function(x){if(x)x.classList.remove('on');});document.getElementById('f-'+m).classList.add('on');renderList();}
   if(fa)fa.addEventListener('click',function(){setFilter('all');});
   if(fv)fv.addEventListener('click',function(){setFilter('visited');});
   if(fu)fu.addEventListener('click',function(){setFilter('unvisited');});
+  if(fs)fs.addEventListener('click',function(){setFilter('saved');});
   // Search
   var sr=document.getElementById('srch');if(sr)sr.addEventListener('input',renderList);
   var nm=document.getElementById('btn-near-me');if(nm)nm.addEventListener('click',centerOnUser);
   var tg=document.getElementById('btn-trail-guide');if(tg)tg.addEventListener('click',function(){openOv('ov-guide');});
   // Modal closes
   ['wf','auth','post','guide'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
+  var bwf=document.getElementById('back-wf');if(bwf)bwf.addEventListener('click',function(){closeOv('ov-wf');});
   // Auth toggles + login/signup
   var atli=document.getElementById('at-li'),atsu=document.getElementById('at-su');
   if(atli)atli.addEventListener('click',function(){swAuth('login');});
@@ -1433,6 +1503,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Delegated clicks
   document.getElementById('prev-grid').addEventListener('click',function(e){var b=e.target.closest('.prm');if(b){pPh.splice(parseInt(b.dataset.i,10),1);renderPrev();}});
   document.getElementById('ex-grid').addEventListener('click',function(e){var c=e.target.closest('.pcard');if(c)openPost(c.dataset.pid);});
+  document.getElementById('wf-comm').addEventListener('click',function(e){var c=e.target.closest('.mpost[data-pid]');if(c){closeOv('ov-wf');openPost(c.dataset.pid);}});
   document.getElementById('post-bd').addEventListener('click',function(e){var b=e.target.closest('[data-goto]');if(b){closeOv('ov-post');openWF(b.dataset.goto);}});
   // Lightbox
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
