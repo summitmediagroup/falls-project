@@ -219,6 +219,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wchip.w{border-color:rgba(74,124,150,.4);color:var(--ice);}
 .wchip.g{border-color:rgba(200,150,60,.4);color:var(--gold);}
 .wf-desc{font-size:.8rem;line-height:1.72;color:rgba(255,255,255,.46);margin-bottom:20px;}
+.wf-overview{background:linear-gradient(180deg,rgba(38,57,44,.48),rgba(17,28,22,.88));border:1px solid rgba(174,204,147,.16);padding:16px 16px 14px;margin:-2px 0 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
+.wf-overview-kicker{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:#cfb06f;margin-bottom:6px;}
+.wf-overview-title{font-family:"Cormorant",serif;font-size:1.45rem;font-weight:300;color:var(--cream);line-height:1.1;margin-bottom:8px;}
+.wf-overview-copy{font-size:.78rem;line-height:1.72;color:rgba(245,241,233,.76);margin-bottom:12px;}
+.wf-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.wf-overview-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:10px 11px;}
+.wf-overview-item span{display:block;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(210,182,120,.78);margin-bottom:4px;}
+.wf-overview-item strong{display:block;font-size:.76rem;font-weight:500;line-height:1.55;color:rgba(255,255,255,.82);}
 .sec-hd{font-family:"Cormorant",serif;font-size:.55rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid rgba(200,150,60,.15);}
 .wf-stories{background:linear-gradient(180deg,rgba(40,61,46,.38),rgba(18,31,24,.82));border:1px solid rgba(157,185,132,.18);padding:14px 14px 10px;margin:18px 0 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
 .wf-stories .sec-hd{font-size:.62rem;letter-spacing:.22em;color:#d2b678;border-bottom-color:rgba(210,182,120,.24);margin-bottom:12px;}
@@ -233,11 +241,15 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .exlog{background:rgba(200,150,60,.06);border:1px solid rgba(200,150,60,.18);padding:12px;margin-bottom:15px;}
 .exlog-meta{font-size:.62rem;color:var(--gold);margin-bottom:4px;}
 .exlog-txt{font-size:.75rem;color:rgba(255,255,255,.44);line-height:1.55;margin-bottom:6px;}
-.wf-gate{background:rgba(200,150,60,.06);border:1px solid rgba(200,150,60,.18);padding:16px 15px;margin-top:10px;margin-bottom:2px;}
-.wf-gate h3{font-family:"Cormorant",serif;font-size:1.25rem;font-weight:300;color:var(--cream);margin-bottom:6px;}
-.wf-gate p{font-size:.74rem;line-height:1.6;color:rgba(255,255,255,.42);margin-bottom:12px;}
+.wf-gate{background:linear-gradient(180deg,rgba(51,39,17,.26),rgba(20,17,12,.82));border:1px solid rgba(210,182,120,.22);padding:18px 16px 16px;margin-top:10px;margin-bottom:2px;box-shadow:0 12px 28px rgba(0,0,0,.16);}
+.wf-gate-kicker{font-size:.57rem;letter-spacing:.22em;text-transform:uppercase;color:#d5b777;margin-bottom:5px;}
+.wf-gate h3{font-family:"Cormorant",serif;font-size:1.38rem;font-weight:300;color:var(--cream);margin-bottom:7px;line-height:1.08;}
+.wf-gate p{font-size:.76rem;line-height:1.68;color:rgba(255,255,255,.58);margin-bottom:12px;}
+.wf-gate-perks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;}
+.wf-gate-perks span{display:block;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:9px 10px;font-size:.68rem;color:rgba(245,241,233,.84);}
 .wf-gate-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .mpost-link{margin-top:9px;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#d9bf7f;}
+.wf-form-note{font-size:.72rem;line-height:1.65;color:rgba(255,255,255,.42);margin:-2px 0 10px;}
 .lform{display:flex;flex-direction:column;gap:10px;}
 .frow{display:flex;gap:8px;}
 .fg{display:flex;flex-direction:column;gap:3px;flex:1;}
@@ -331,6 +343,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .ex-hero{height:240px;}
   #m-wf,#m-auth,#m-post{width:96vw;}
   .wf-body,.post-bd,.auth-bd{padding:13px 13px 18px;}
+  .wf-overview-grid,.wf-gate-perks{grid-template-columns:1fr;}
   .frow{flex-direction:column;}
   .nav-brand-name{display:none;}
   .ntab{padding:6px 9px;font-size:.6rem;}
@@ -450,11 +463,13 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   <div class="wf-body">
     <div class="wf-chips" id="wf-chips"></div>
     <p class="wf-desc" id="wf-desc"></p>
+    <div class="wf-overview" id="wf-overview"></div>
     <div class="wf-actions" id="wf-actions"></div>
     <div id="wf-comm" class="wf-stories"></div>
     <div id="wf-exlog"></div>
     <div id="wf-gate"></div>
     <div class="sec-hd" id="wf-form-hd">Log Your Visit</div>
+    <div class="wf-form-note" id="wf-form-note">Capture the little details you will want to remember the next time someone asks, "Was it worth the drive?"</div>
     <div class="lform" id="wf-form">
       <div class="frow">
         <div class="fg"><label>Date Visited</label><input type="date" id="f-date"></div>
@@ -1089,17 +1104,42 @@ function renderList(){
   });
 }
 
+function journeyFitCopy(f){
+  var miles=parseFloat(String(f.trail||'').replace(/[^0-9.]/g,''))||0;
+  if(String(f.diff||'')==='Easy' && miles && miles<=1) return 'Perfect for a quick stop, first-timers, and anyone who wants beauty without a long climb.';
+  if(String(f.diff||'')==='Easy') return 'A rewarding outing when you want the feeling of an adventure without giving up your whole day.';
+  if(String(f.diff||'')==='Moderate') return 'Best for explorers who want a real hike, a worthwhile payoff, and a story to bring home.';
+  return 'A bigger trail day for people chasing the kind of waterfall you remember long after your boots dry out.';
+}
+function trailMoodCopy(f){
+  var fee=String(f.fee||'Free');
+  var type=String(f.type||'waterfall').toLowerCase();
+  var feeCopy=fee==='Free'?'No entry fee listed.':'Expect '+fee+' in fees.';
+  return 'This '+type+' sits in '+(f.region||'a beautiful stretch of trail')+'. '+feeCopy;
+}
+function buildWaterfallOverview(f){
+  return {
+    title:'Why explorers go',
+    copy:(f.desc||'A beautiful waterfall waiting to be explored.')+' It is the kind of stop that can turn a regular day outside into something memorable.',
+    fit:journeyFitCopy(f),
+    scene:'A '+String(f.type||'waterfall').toLowerCase()+' with '+(f.height||'an unforgettable drop')+' and a '+(f.trail||'varied')+' round trip.',
+    note:trailMoodCopy(f)
+  };
+}
+
 function openWF(id){
   wfId=id;
   var f=FALLS.find(function(x){return x.id===id;});if(!f)return;
   var log=getLog(id);
   var isPaid=!!(ME&&ME.is_pro);
+  var overview=buildWaterfallOverview(f);
   pPh=log&&log.photos?log.photos.slice():[];
   pStar=log&&log.rating?log.rating:0;
   pPriv=log&&log.privacy?log.privacy:'public';
   document.getElementById('wf-reg').textContent=f.region;
   document.getElementById('wf-nm').textContent=f.name;
   document.getElementById('wf-desc').textContent=f.desc;
+  document.getElementById('wf-overview').innerHTML='<div class="wf-overview-kicker">Field Notes</div><div class="wf-overview-title">'+esc(overview.title)+'</div><div class="wf-overview-copy">'+esc(overview.copy)+'</div><div class="wf-overview-grid"><div class="wf-overview-item"><span>Best For</span><strong>'+esc(overview.fit)+'</strong></div><div class="wf-overview-item"><span>Trail Feel</span><strong>'+esc(overview.scene)+'</strong></div><div class="wf-overview-item"><span>Before You Go</span><strong>'+esc(overview.note)+'</strong></div><div class="wf-overview-item"><span>Explorer Hint</span><strong>'+(isSaved(id)?'Already on your saved list, ready whenever you are.':'Save this fall if it feels like a future road-trip kind of day.')+'</strong></div></div>';
   var savedLabel=isSaved(id)?'Remove from Saved':'Save to Visit';
   document.getElementById('wf-actions').innerHTML=
     '<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>'
@@ -1133,7 +1173,7 @@ function openWF(id){
   if(log){
     var st=log.rating?'&#9733;'.repeat(log.rating):'';
     xe.innerHTML='<div class="sec-hd">Your Visit Log</div><div class="exlog"><div class="exlog-meta">'+esc(log.date||'Date unknown')+(log.duration?' &middot; '+esc(log.duration):'')+' '+st+'</div>'+(log.loved?'<div class="exlog-txt"><b style="opacity:.5">Loved:</b> '+esc(log.loved)+'</div>':'')+(log.tips?'<div class="exlog-txt"><b style="opacity:.5">Tips:</b> '+esc(log.tips)+'</div>':'')+'</div>';
-    document.getElementById('wf-form-hd').textContent='Update Your Visit';
+    document.getElementById('wf-form-hd').textContent='Your Trail Journal';
     document.getElementById('del-btn').style.display='block';
     document.getElementById('f-date').value=log.date||'';
     document.getElementById('f-dur').value=log.duration||'';
@@ -1144,7 +1184,7 @@ function openWF(id){
     document.getElementById('f-tips').value=log.tips||'';
   } else {
     xe.innerHTML='';
-    document.getElementById('wf-form-hd').textContent='Log Your Visit';
+    document.getElementById('wf-form-hd').textContent='Start Your Trail Journal';
     document.getElementById('del-btn').style.display='none';
     document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
     ['f-dur','f-loved','f-imp','f-tips'].forEach(function(x){document.getElementById(x).value='';});
@@ -1152,14 +1192,15 @@ function openWF(id){
   }
   renderStars();renderPriv();renderPrev();
   if(!ME){
-    gate.innerHTML='<div class="wf-gate"><h3>Keep this fall on your radar</h3><p>Map browsing and explorer stories are open to everyone. Sign in when you are ready to save your list and start your own trail journal.</p><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
+    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Members Get More</div><h3>Keep this fall on your radar</h3><p>Browse the map and read stories freely. Sign in when you are ready to build your own waterfall record and start collecting trail memories.</p><div class="wf-gate-perks"><span>Save future falls</span><span>Build your explorer profile</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
   } else if(!isPaid){
-    gate.innerHTML='<div class="wf-gate"><h3>Unlock your trail journal</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build your personal waterfall record.</p><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
+    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Explorer Journal</div><h3>Turn this hike into part of your story</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build a beautiful personal record of every waterfall you chase.</p><div class="wf-gate-perks"><span>Log every visit</span><span>Upload trail photos</span><span>Keep private notes</span><span>Build your badge journey</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
   } else {
     gate.innerHTML='';
   }
   document.getElementById('wf-form').style.display=isPaid?'flex':'none';
   document.getElementById('wf-form-hd').style.display=isPaid?'block':'none';
+  document.getElementById('wf-form-note').style.display=isPaid?'block':'none';
   document.getElementById('lg').style.display='none';
   if(!isPaid){
     document.getElementById('wf-form').querySelectorAll('input,select,textarea,button').forEach(function(x){x.disabled=true;});
@@ -1208,6 +1249,7 @@ async function saveLog(){
     if(!ME){openAuth();return;}
     var btn=document.getElementById('btn-save-log'); if(btn){btn.disabled=true;btn.textContent='Saving...';}
     var ex=getLog(wfId);
+    var isUpdate=!!(ex&&ex.rowId);
     var f=FALLS.find(function(x){return x.id===wfId;});
     var payload={
       user_id:ME.id,
@@ -1236,7 +1278,7 @@ async function saveLog(){
     await uploadPhotosForLog(rowId);
     await refreshAllData();
     closeOv('ov-wf');
-    toast('Saved: '+(f?f.name:'Visit'));
+    toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added to your trail journal: '+(f?f.name:'this waterfall'));
   } catch(err){
     console.error(err);
     toast(err && err.message ? err.message : 'Could not save your journal entry');
