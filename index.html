@@ -1023,10 +1023,15 @@ function renderNav(){
   }
 }
 function showPage(nm){
-  if(nm==='journal' && (!ME || !ME.is_pro)){
+  if(nm === 'journal'){
+  const s = await sb.auth.getSession();
+  const user = s.data && s.data.session && s.data.session.user;
+
+  if(!user || !ME || !ME.is_pro){
     upgradeToPro();
     return;
   }
+}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
   document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
   document.getElementById('pg-'+nm).classList.add('on');
