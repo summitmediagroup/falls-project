@@ -970,26 +970,32 @@ function renderNav(){
   var el=document.getElementById('auth-area');
   if(!el) return;
 
-  if(ME && ME.is_pro){
-    el.innerHTML =
-      '<div class="nav-user">' +
-        '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
-        '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
-        '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
-      '</div>';
-    var lo=document.getElementById('btn-lo');
-    if(lo) lo.addEventListener('click',doLogout);
-  } else {
-    el.innerHTML =
-      '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
-      '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
+  if(ME){
+  el.innerHTML =
+    '<div class="nav-user">' +
+      '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
+      '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
+      '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
+      (ME.is_pro ? '' : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
+    '</div>';
 
-    var si=document.getElementById('btn-signin');
-    var up=document.getElementById('btn-upgrade');
+  var lo=document.getElementById('btn-lo');
+  if(lo) lo.addEventListener('click',doLogout);
 
-    if(si) si.addEventListener('click',openAuth);
-    if(up) up.addEventListener('click',upgradeToPro);
-  }
+  var up=document.getElementById('btn-upgrade');
+  if(up) up.addEventListener('click',upgradeToPro);
+
+} else {
+  el.innerHTML =
+    '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
+    '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
+
+  var si=document.getElementById('btn-signin');
+  var up=document.getElementById('btn-upgrade');
+
+  if(si) si.addEventListener('click',openAuth);
+  if(up) up.addEventListener('click',upgradeToPro);
+}
 }
 function showPage(nm){
 
