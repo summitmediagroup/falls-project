@@ -675,37 +675,37 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
-  if(window.hydrating) return;
-  window.hydrating = true;
+  var s = await sb.auth.getSession();
+  var user = s.data && s.data.session && s.data.session.user;
 
-  try {
-    var s = await sb.auth.getSession();
-    var user = s.data && s.data.session && s.data.session.user;
-
-    if(!user){
-      ME = null;
-      window.hydrating = false;
-      return;
-    }
-
-    let prof = null;
-
-    try {
-      prof = await ensureProfile(user);
-    } catch(e){
-      console.log("Profile load failed, continuing anyway");
-    }
-
-    ME = {
-      id: user.id,
-      name: (prof && prof.name) || user.email.split('@')[0],
-      email: user.email,
-      is_pro: prof && prof.is_pro === true ? true : false
-    };
-
-  } finally {
-    window.hydrating = false;
+  if(!user){
+    ME = null;
+    return;
   }
+
+  var prof = null;
+  try {
+    prof = await ensureProfile(user);
+  } catch(e){
+    console.log("Profile load failed, continuing anyway");
+  }
+
+  var isPro = false;
+  try {
+    var proRes = await sb.from('profiles').select('is_pro').eq('id', user.id).maybeSingle();
+    if(!proRes.error && proRes.data){
+      isPro = proRes.data.is_pro === true;
+    }
+  } catch(e){
+    console.log("Pro lookup failed, continuing as free user");
+  }
+
+  ME = {
+    id: user.id,
+    name: (prof && prof.name) || user.email.split('@')[0],
+    email: user.email,
+    is_pro: isPro
+  };
 }
 
 function mapPhotos(rows){
@@ -1191,7 +1191,6 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
     toast('Connected, but Supabase setup still needs a little polish');
   }
 })();
-});
 </script>
 
 <script>
