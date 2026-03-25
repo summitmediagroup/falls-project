@@ -681,13 +681,19 @@ async function hydrateSession(){
     return;
   }
 
-  var prof = await ensureProfile(user);
+  let prof = null;
+
+  try {
+    prof = await ensureProfile(user);
+  } catch(e){
+    console.log("Profile load failed, continuing anyway");
+  }
 
   ME = {
     id: user.id,
     name: (prof && prof.name) || user.email.split('@')[0],
     email: user.email,
-    is_pro: prof && prof.is_pro === true
+    is_pro: prof && prof.is_pro === true ? true : false
   };
 }
 
