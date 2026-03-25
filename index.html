@@ -624,7 +624,7 @@ var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
 var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbWVsaGRseXloYmticmR6cnRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODE4NTMsImV4cCI6MjA4OTc1Nzg1M30.GK9TQ06Mbbj1LMQHr7WKwcfVmGiLgf5eFc6Zak9gZkQ";
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null;
+var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -942,6 +942,15 @@ function mkIcon(v){
   return L.divIcon({className:'',html:'<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:'+c+';border:2px solid '+b+';box-shadow:0 3px 9px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:10px">&#128167;</span></div>',iconSize:[24,24],iconAnchor:[12,24],popupAnchor:[0,-24]});
 }
 function refreshMk(id){if(MK[id])MK[id].setIcon(mkIcon(isVis(id)));}
+function milesBetween(lat1,lng1,lat2,lng2){
+  function rad(v){return v*Math.PI/180;}
+  var R=3958.8;
+  var dLat=rad(lat2-lat1);
+  var dLng=rad(lng2-lng1);
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLng/2)*Math.sin(dLng/2);
+  var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return R*c;
+}
 function userIcon(){
   return L.divIcon({
     className:'',
@@ -962,11 +971,13 @@ function centerOnUser(){
   }
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat=pos.coords.latitude,lng=pos.coords.longitude;
+    USER_POS={lat:lat,lng:lng};
     if(!MAP) initMap();
     if(USER_MARKER){MAP.removeLayer(USER_MARKER);}
     USER_MARKER=L.marker([lat,lng],{icon:userIcon()}).addTo(MAP).bindTooltip('You are here',{direction:'top',offset:[0,-10]});
     MAP.setView([lat,lng],10,{animate:true});
     if(USER_MARKER && USER_MARKER.openTooltip) USER_MARKER.openTooltip();
+    renderList();
     if(btn){
       btn.disabled=false;
       btn.textContent='Near Me';
@@ -989,9 +1000,9 @@ function renderList(){
   var q=document.getElementById('srch').value.trim().toLowerCase();
   var total=FALLS.length,vis=FALLS.filter(function(f){return isVis(f.id);}).length;
   document.getElementById('prog').style.width=Math.round(vis/total*100)+'%';
-  document.getElementById('prog-txt').textContent=vis+' of '+total+' visited';
+  document.getElementById('prog-txt').textContent=USER_POS?(vis+' of '+total+' visited · closest first'):(vis+' of '+total+' visited');
   var el=document.getElementById('falls-list');el.innerHTML='';
-  FALLS.filter(function(f){
+  var filtered=FALLS.filter(function(f){
     var state=String(f.state||'').toLowerCase();
     var haystack=[f.name,f.region,f.state,f.state_name].join(' ').toLowerCase();
     if(fMode==='visited'&&!isVis(f.id))return false;
@@ -1011,14 +1022,21 @@ function renderList(){
       if(!stateMatches) return false;
     }
     return true;
-  }).forEach(function(f){
+  });
+  if(USER_POS){
+    filtered=filtered.slice().sort(function(a,b){
+      return milesBetween(USER_POS.lat,USER_POS.lng,a.lat,a.lng)-milesBetween(USER_POS.lat,USER_POS.lng,b.lat,b.lng);
+    });
+  }
+  filtered.forEach(function(f){
     var v=isVis(f.id),log=getLog(f.id);
     var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
     var thumb=log&&log.photos&&log.photos[0]?'<img class="fi-thumb" src="'+esc(log.photos[0])+'">':'<img class="fi-thumb" src="'+heroFor(f.id)+'" style="opacity:.3">';
+    var near=USER_POS?'<span class="chip">'+esc(milesBetween(USER_POS.lat,USER_POS.lng,f.lat,f.lng).toFixed(0)+' mi away')+'</span>':'';
     var d=document.createElement('div');d.className='fi'+(v?' done':'');
     d.innerHTML='<div class="fi-body"><div class="fi-name">'+esc(f.name)+'</div><div class="fi-reg">'+esc(f.region)+'</div>'
       +'<div class="fi-chips"><span class="chip '+hc+'">'+esc(f.diff)+'</span><span class="chip w">'+esc(f.type)+'</span>'
-      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span></div>'
+      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span>'+near+'</div>'
       +(log?'<div class="fi-date">&#10003; '+esc(log.date||'visited')+(log.rating?' &middot; ' + '&#9733;'.repeat(log.rating):'')+'</div>':'')
       +'</div>'+thumb+'<div class="fi-tick">&#10003;</div>';
     d.addEventListener('click',function(){openWF(f.id);});
