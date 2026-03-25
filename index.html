@@ -177,6 +177,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .jbadge-pill.locked{opacity:.5;border-style:dashed;}
 .jbadge-pill-art{width:56px;height:56px;flex-shrink:0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;padding:3px;border-radius:14px;}
 .jbadge-pill-art img{width:100%;height:100%;object-fit:contain;display:block;}
+.badge-fallback{display:none;width:100%;height:100%;align-items:center;justify-content:center;}
 .jbadge-pill-copy{min-width:0;}
 .jbadge-pill-k{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:3px;}
 .jbadge-pill-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;}
@@ -916,8 +917,9 @@ function getBadgeVault(logCount, isFounder){
   ];
 }
 function badgeCardArt(badge){
+  var fallback='<span class="badge-fallback"><div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div></span>';
   if(badge.image){
-    return '<img src="'+esc(badge.image)+'" alt="'+esc(badge.label)+' badge">';
+    return fallback+'<img src="'+esc(badge.image)+'" alt="'+esc(badge.label)+' badge" onerror="this.style.display=\'none\';if(this.previousElementSibling)this.previousElementSibling.style.display=\'flex\';">';
   }
   return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
 }
