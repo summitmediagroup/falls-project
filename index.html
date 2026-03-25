@@ -687,7 +687,7 @@ async function hydrateSession(){
     id: user.id,
     name: (prof && prof.name) || user.email.split('@')[0],
     email: user.email,
-    is_pro: true // TEMPORARY for testing
+    is_pro: prof && prof.is_pro === true
   };
 }
 
