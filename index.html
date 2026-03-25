@@ -593,21 +593,46 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
-  var s=await sb.auth.getSession();
-  var user=s.data&&s.data.session&&s.data.session.user;
-  if(!user){ME=null;return;}
-  var prof=null;
-  try{
-    prof=await ensureProfile(user);
-  }catch(e){
-    console.log("Profile load failed, continuing anyway");
+  var s = await sb.auth.getSession();
+  var user = s.data && s.data.session && s.data.session.user;
+
+  if(!user){
+    ME = null;
+    return;
   }
-  ME={
-    id:user.id,
-    name:(prof&&prof.name)||user.email.split('@')[0],
-    email:user.email,
-    plan:(prof&&prof.plan)||'free',
-    is_pro: (prof && prof.is_pro === true)
+
+  var nm = (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0];
+
+  var profRes = await sb
+    .from('profiles')
+    .select('id,name,email,plan,is_pro')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  var prof = profRes.data;
+
+  if(!prof){
+    var ins = await sb
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+        name: nm,
+        plan: 'free',
+        is_pro: false
+      })
+      .select('id,name,email,plan,is_pro')
+      .single();
+
+    prof = ins.data;
+  }
+
+  ME = {
+    id: user.id,
+    name: (prof && prof.name) || nm,
+    email: user.email,
+    plan: (prof && prof.plan) || 'free',
+    is_pro: (prof && (prof.is_pro === true || prof.plan === 'pro')) ? true : false
   };
 }
 
