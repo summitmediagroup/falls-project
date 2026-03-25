@@ -109,8 +109,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;}
 .fi-tick{position:absolute;top:7px;right:7px;width:14px;height:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--bg);opacity:0;transition:opacity .2s;}
 .fi.done .fi-tick{opacity:1;}
-#map-el{flex:1;z-index:1;}
-.leaflet-tile{filter:brightness(1.02) saturate(.92) contrast(.98) hue-rotate(-8deg);}
+#map-el{flex:1;z-index:1;position:relative;background:linear-gradient(180deg,rgba(111,140,120,.16),rgba(12,20,16,.06));}
+#map-el::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(126,156,120,.12),rgba(74,124,150,.05));pointer-events:none;z-index:300;}
+.leaflet-tile{filter:brightness(1.01) saturate(1.05) contrast(.96) hue-rotate(18deg);}
 .leaflet-container{background:var(--bg)!important;}
 .wf-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;}
 .wf-actions .btn-out{background:rgba(255,255,255,.03);}
