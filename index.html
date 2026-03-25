@@ -73,6 +73,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .feats-sub{font-size:.78rem;line-height:1.65;color:rgba(255,255,255,.4);max-width:520px;}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;}
 .feat{background:var(--bg);padding:36px 28px;}
+.feat-tag{display:inline-flex;align-items:center;padding:4px 8px;margin-bottom:12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.feat-tag.paid{border-color:rgba(200,150,60,.28);color:var(--gold);background:rgba(200,150,60,.08);}
+.feat-tag.open{border-color:rgba(90,122,92,.32);color:var(--mist);background:rgba(90,122,92,.12);}
 .feat-icon{font-size:1.7rem;margin-bottom:12px;}
 .feat-title{font-family:"Cormorant",serif;font-size:1.15rem;color:var(--cream);margin-bottom:7px;}
 .feat-desc{font-size:.76rem;color:rgba(255,255,255,.36);line-height:1.7;}
@@ -407,14 +410,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     </div>
   </div>
   <div class="feats-head">
-    <div class="feats-eye">What Is Inside</div>
-    <div class="feats-title">What your explorer membership includes</div>
-    <p class="feats-sub">These are the core parts of The Falls Project experience. Use the button above to open the map and start exploring.</p>
+    <div class="feats-eye">How It Works</div>
+    <div class="feats-title">Explore freely. Upgrade when you want your own trail record.</div>
+    <p class="feats-sub">The map and explorer stories are open so anyone can discover new falls. The premium journal is for the families who want to remember where they have been, what they loved, and which trails are worth repeating.</p>
   </div>
   <div class="feats">
-    <div class="feat"><div class="feat-icon">&#128506;</div><div class="feat-title">Interactive Map</div><p class="feat-desc">Every waterfall plotted with trail length, difficulty, fees, and directions.</p></div>
-    <div class="feat"><div class="feat-icon">&#128211;</div><div class="feat-title">Family Trail Journal</div><p class="feat-desc">Log every visit with photos, ratings, and notes. Keep adventures private or share with the community.</p></div>
-    <div class="feat"><div class="feat-icon">&#127754;</div><div class="feat-title">Community Reports</div><p class="feat-desc">Real trail conditions, honest reviews, and photos from hikers who have been there.</p></div>
+    <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#128506;</div><div class="feat-title">Interactive Map</div><p class="feat-desc">Browse waterfalls by region, state, distance, trail details, and directions so you can find the right outing before you ever leave home.</p></div>
+    <div class="feat"><div class="feat-tag paid">Paid Members</div><div class="feat-icon">&#128211;</div><div class="feat-title">Family Trail Journal</div><p class="feat-desc">Keep your own waterfall record with notes, photos, ratings, and memories, so you remember which trails became family favorites and which ones were not worth another Sunday.</p></div>
+    <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#127754;</div><div class="feat-title">Explorer Stories</div><p class="feat-desc">Read real trail stories, honest conditions, and lived experience from other explorers before you choose your next adventure.</p></div>
   </div>
   <div class="land-cta">
     <h2>Track every waterfall. Discover what’s next.</h2>
