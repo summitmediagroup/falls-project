@@ -1076,21 +1076,22 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
-  sb.auth.onAuthStateChange(async function(event, session){
-    if(session && session.user){
-
-  const { data } = await sb
-    .from('profiles')
-    .select('is_pro')
-    .eq('id', session.user.id)
-    .single();
-
-  ME = {
-    id: session.user.id,
-    name: (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0],
-    email: session.user.email,
-    is_pro: data && data.is_pro ? true : false
-  };
+sb.auth.onAuthStateChange(function(event, session){
+  if(session && session.user){
+    setTimeout(async function(){
+      await hydrateSession();
+      renderNav();
+      await refreshAllData();
+    }, 0);
+  } else if(event === 'SIGNED_OUT'){
+    ME = null;
+    DB = {users:{}, posts:{}};
+    renderNav();
+    renderList();
+    renderExplore();
+    renderJournal();
+  }
+});
 
   renderNav();
 } else if(event==='SIGNED_OUT'){
