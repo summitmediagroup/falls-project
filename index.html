@@ -604,25 +604,17 @@ function upgradeToPro(){window.location.href="https://buy.stripe.com/4gMeVd9tAgH
 async function openBillingPortal(){
   try{
     if(!ME || !ME.is_pro){upgradeToPro();return;}
-    var sessionRes=await sb.auth.getSession();
-    var session=sessionRes.data&&sessionRes.data.session;
-    if(!session || !session.access_token){openAuth();return;}
     var btn=document.getElementById('btn-manage-sub-nav')||document.getElementById('btn-manage-sub-journal');
     if(btn){
       btn.disabled=true;
       btn.textContent='Opening...';
     }
-    var res=await fetch(SUPABASE_URL+'/functions/v1/stripe-billing-portal',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+session.access_token
-      },
-      body:JSON.stringify({returnUrl:window.location.href})
+    var res=await sb.functions.invoke('stripe-billing-portal',{
+      body:{returnUrl:window.location.href}
     });
-    var data=await res.json().catch(function(){return {};});
-    if(!res.ok) throw new Error((data&&data.error)||'Could not open billing portal');
-    if(!data || !data.url) throw new Error('Billing portal link missing');
+    if(res.error) throw res.error;
+    var data=res.data||{};
+    if(!data.url) throw new Error(data.error||'Billing portal link missing');
     window.location.href=data.url;
   } catch(err){
     console.error(err);
