@@ -83,6 +83,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .prog-wrap{height:2px;background:rgba(255,255,255,.08);margin-bottom:5px;overflow:hidden;}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--sage),var(--gold));transition:width .5s;}
 .prog-txt{font-size:.58rem;color:var(--mist);margin-bottom:10px;}
+.sb-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.sb-help{padding:6px 10px;background:rgba(200,150,60,.08);border:1px solid rgba(200,150,60,.24);color:var(--gold);font-family:"DM Sans",sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;white-space:nowrap;transition:all .2s;}
+.sb-help:hover{background:rgba(200,150,60,.16);border-color:rgba(200,150,60,.4);}
 .ftabs{display:flex;gap:5px;margin-bottom:9px;}
 .ftab{padding:4px 10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.36);font-family:"DM Sans",sans-serif;font-size:.6rem;font-weight:500;letter-spacing:.07em;cursor:pointer;transition:all .2s;border-radius:1px;}
 .ftab.on{background:var(--gold);border-color:var(--gold);color:var(--bg);}
@@ -107,8 +110,17 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .fi-tick{position:absolute;top:7px;right:7px;width:14px;height:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--bg);opacity:0;transition:opacity .2s;}
 .fi.done .fi-tick{opacity:1;}
 #map-el{flex:1;z-index:1;}
-.leaflet-tile{filter:brightness(.65) saturate(.5) contrast(1.1);}
+.leaflet-tile{filter:brightness(.9) saturate(.72) contrast(1.02);}
 .leaflet-container{background:var(--bg)!important;}
+.guide-bd{padding:26px 24px 24px;}
+.guide-eye{font-family:"Cormorant",serif;font-size:.54rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.guide-title{font-family:"Cormorant",serif;font-size:1.5rem;font-weight:300;color:var(--cream);margin-bottom:10px;}
+.guide-intro{font-size:.78rem;color:var(--mist);line-height:1.65;margin-bottom:18px;max-width:420px;}
+.guide-grid{display:grid;gap:10px;}
+.guide-item{padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);}
+.guide-item strong{display:block;font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.guide-item p{font-size:.75rem;line-height:1.6;color:rgba(255,255,255,.46);}
+.guide-note{margin-top:16px;font-size:.7rem;line-height:1.6;color:rgba(255,255,255,.28);}
 #pg-explore{flex-direction:column;overflow-y:auto;}
 .ex-hero{height:380px;position:relative;overflow:hidden;flex-shrink:0;}
 .ex-hero-bg{position:absolute;inset:0;display:flex;}
@@ -372,10 +384,13 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="sb-title">Georgia Waterfalls</div>
       <div class="prog-wrap"><div class="prog-fill" id="prog" style="width:0%"></div></div>
       <div class="prog-txt" id="prog-txt">Loading...</div>
-      <div class="ftabs">
-        <button class="ftab on" id="f-all">All</button>
-        <button class="ftab" id="f-visited">Visited</button>
-        <button class="ftab" id="f-unvisited">To Visit</button>
+      <div class="sb-tools">
+        <div class="ftabs">
+          <button class="ftab on" id="f-all">All</button>
+          <button class="ftab" id="f-visited">Visited</button>
+          <button class="ftab" id="f-unvisited">To Visit</button>
+        </div>
+        <button class="sb-help" id="btn-trail-guide">Trail Guide</button>
       </div>
       <input class="sb-search" id="srch" type="text" placeholder="Search falls or region...">
     </div>
@@ -498,6 +513,24 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="post-hero-info"><div class="ph-wf" id="ph-wf"></div><div class="ph-title" id="ph-title"></div></div>
   </div>
   <div class="post-bd" id="post-bd"></div>
+</div>
+</div>
+<div class="ov" id="ov-guide">
+<div class="modal" id="m-guide" style="width:540px;max-width:96vw">
+  <button class="mx" id="close-guide">&times;</button>
+  <div class="guide-bd">
+    <div class="guide-eye">Trail Guide</div>
+    <div class="guide-title">How to read each waterfall</div>
+    <p class="guide-intro">Each waterfall card gives you a quick snapshot before you tap in. Here is what those labels mean in plain language.</p>
+    <div class="guide-grid">
+      <div class="guide-item"><strong>Difficulty</strong><p><b>Easy</b> usually means a short or simpler walk. <b>Moderate</b> means more effort, uneven ground, or a longer hike. <b>Strenuous</b> means a tougher trail with bigger climbs, rougher footing, or a much longer day.</p></div>
+      <div class="guide-item"><strong>Type</strong><p>This tells you how the water moves. A <b>plunge</b> drops straight down. A <b>cascade</b> tumbles over rock in steps. <b>Tiered</b>, <b>slide</b>, <b>veil</b>, and <b>twin</b> describe the waterfall’s shape.</p></div>
+      <div class="guide-item"><strong>Height</strong><p>This is the approximate height of the waterfall itself, not the hiking distance.</p></div>
+      <div class="guide-item"><strong>Trail</strong><p>This is the round-trip hiking distance, so <b>5.0 miles</b> means about 5 miles total there and back.</p></div>
+      <div class="guide-item"><strong>Fee</strong><p>This shows whether there is a parking fee, park entry fee, or no fee at all.</p></div>
+    </div>
+    <p class="guide-note">Trail ratings are a helpful guide, not a promise. Weather, water level, and trail conditions can make any hike feel easier or harder on a given day.</p>
+  </div>
 </div>
 </div>
 <div id="lb"><img id="lb-img" src="" alt=""></div>
@@ -1263,8 +1296,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(fu)fu.addEventListener('click',function(){setFilter('unvisited');});
   // Search
   var sr=document.getElementById('srch');if(sr)sr.addEventListener('input',renderList);
+  var tg=document.getElementById('btn-trail-guide');if(tg)tg.addEventListener('click',function(){openOv('ov-guide');});
   // Modal closes
-  ['wf','auth','post'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
+  ['wf','auth','post','guide'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
   // Auth toggles + login/signup
   var atli=document.getElementById('at-li'),atsu=document.getElementById('at-su');
   if(atli)atli.addEventListener('click',function(){swAuth('login');});
