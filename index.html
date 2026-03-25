@@ -110,8 +110,10 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .fi-tick{position:absolute;top:7px;right:7px;width:14px;height:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--bg);opacity:0;transition:opacity .2s;}
 .fi.done .fi-tick{opacity:1;}
 #map-el{flex:1;z-index:1;}
-.leaflet-tile{filter:brightness(.9) saturate(.72) contrast(1.02);}
+.leaflet-tile{filter:brightness(1.02) saturate(.92) contrast(.98) hue-rotate(-8deg);}
 .leaflet-container{background:var(--bg)!important;}
+.wf-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;}
+.wf-actions .btn-out{background:rgba(255,255,255,.03);}
 .guide-bd{padding:26px 24px 24px;}
 .guide-eye{font-family:"Cormorant",serif;font-size:.54rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
 .guide-title{font-family:"Cormorant",serif;font-size:1.5rem;font-weight:300;color:var(--cream);margin-bottom:10px;}
@@ -427,6 +429,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   <div class="wf-body">
     <div class="wf-chips" id="wf-chips"></div>
     <p class="wf-desc" id="wf-desc"></p>
+    <div class="wf-actions" id="wf-actions"></div>
     <div id="wf-comm"></div>
     <div id="wf-exlog"></div>
     <div class="sec-hd" id="wf-form-hd">Log Your Visit</div>
@@ -620,6 +623,9 @@ function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function isVis(id){return !!(ME&&DB.users[ME.id]&&DB.users[ME.id].logs&&DB.users[ME.id].logs[id]);}
 function getLog(id){return ME?((DB.users[ME.id]||{}).logs||{})[id]||null:null;}
+function mapLabel(v){return encodeURIComponent(String(v||'Waterfall'));} 
+function googleMapsUrl(f){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(f.lat+','+f.lng)+'&travelmode=driving';}
+function appleMapsUrl(f){return 'https://maps.apple.com/?daddr='+encodeURIComponent(f.lat+','+f.lng)+'&dirflg=d&q='+mapLabel(f.name);}
 function slugify(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');}
 function pickFirst(row, keys){
   for(var i=0;i<keys.length;i++){
@@ -900,7 +906,7 @@ async function refreshAllData(){
 function initMap(){
   if(MAP)return;
   MAP=L.map('map-el',{zoomControl:false}).setView([34.68,-83.95],8);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(MAP);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(MAP);
   L.control.zoom({position:'bottomright'}).addTo(MAP);
   FALLS.forEach(function(f){
     var m=L.marker([f.lat,f.lng],{icon:mkIcon(isVis(f.id))}).addTo(MAP)
@@ -951,6 +957,9 @@ function openWF(id){
   document.getElementById('wf-reg').textContent=f.region;
   document.getElementById('wf-nm').textContent=f.name;
   document.getElementById('wf-desc').textContent=f.desc;
+  document.getElementById('wf-actions').innerHTML=
+    '<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
+    +'<a class="btn-out" href="'+appleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>';
   document.getElementById('wf-bg').style.backgroundImage='url('+heroFor(id)+')';
   var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
   document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span><span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
