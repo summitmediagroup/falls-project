@@ -306,7 +306,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   </div>
   <div class="nav-tabs">
     <button class="ntab" id="t-map">Map</button>
-    <button class="ntab" id="t-explore">Explore</button>
+    <button class="ntab" id="t-explore">Stories</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
   <div id="auth-area"></div>
@@ -321,7 +321,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="hero-body">
       <div class="hero-eye">Georgia &middot; Tennessee &middot; North Carolina &middot; And Beyond</div>
       <h1 class="hero-h1">Every waterfall.<br><em>Every story.</em></h1>
-      <p class="hero-sub">The Falls Project is the community trail journal for waterfall hunters. Discover hidden cascades, log your adventures, and share your stories with families just like yours.</p>
+      <p class="hero-sub">The Falls Project is the community trail journal for waterfall hunters. Discover hidden cascades, log your adventures, and share your stories with families just like yours, or keep it private. You decide.</p>
       <div class="hero-ctas">
         <button class="cta-p" id="btn-map">Explore the Map</button>
         <button class="cta-s" id="btn-auth-land">Unlock Explorer Journal • $3.99</button>
@@ -888,7 +888,7 @@ function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in or create a free account to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to browse your journal. Upgrade when you're ready to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
     var jb=document.getElementById('jauth');if(jb)jb.addEventListener('click',openAuth);
     return;
   }
