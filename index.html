@@ -606,10 +606,10 @@ function makeBadgeMarkup(badge, tone){
 
 async function ensureProfile(user){
   var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
-  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro,current_period_end,subscription_status').eq('id',user.id).maybeSingle();
+  var existing=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
   if(!existing.data){
-    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free',is_pro:false}).select('id,name,email,plan,is_pro,current_period_end,subscription_status').single();
+    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('*').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
