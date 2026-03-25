@@ -526,7 +526,7 @@ function heroFor(id) {
   return PH[keys[c % 5]];
 }
 
-var FALLS=[
+var FALLS_FALLBACK=[
   {id:"amicalola",name:"Amicalola Falls",region:"Dawson County",lat:34.5635,lng:-84.2443,height:"729 ft",diff:"Moderate",type:"Cascade",trail:"2.0 mi",fee:"$5",desc:"Georgia's tallest waterfall at 729 feet. Seven cascades tumble down black rock on Amicalola Creek. The Appalachian Trail approach begins right here."},
   {id:"cochrans",name:"Cochrans Falls",region:"Dawson County",lat:34.5753,lng:-84.2162,height:"600 ft",diff:"Strenuous",type:"Cascade",trail:"6.0 mi",fee:"Free",desc:"Second-tallest in Georgia at 600 feet. Rarely visited, requires serious bushwhacking. A true explorer's reward."},
   {id:"falls_creek",name:"Falls Creek Falls",region:"Dawson County",lat:34.5157,lng:-84.3185,height:"45 ft",diff:"Easy",type:"Cascade",trail:"1.4 mi",fee:"Free",desc:"Upper, middle, and lower falls on a lovely woodland walk in Dawson Forest WMA."},
@@ -574,6 +574,7 @@ var FALLS=[
   {id:"bridal_veil",name:"Bridal Veil Falls",region:"Habersham County",lat:34.6550,lng:-83.5720,height:"40 ft",diff:"Easy",type:"Veil",trail:"0.2 mi",fee:"Free",desc:"A delicate veil of water over a broad rock face along Highway 197."},
   {id:"yellow_branch",name:"Yellow Branch Falls",region:"Oconee County border",lat:34.8570,lng:-83.1530,height:"60 ft",diff:"Easy",type:"Plunge",trail:"1.8 mi",fee:"Free",desc:"A gorgeous 60-foot plunge near the Georgia-South Carolina border."},
 ];
+var FALLS=FALLS_FALLBACK.slice();
 
 
 var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
@@ -586,6 +587,83 @@ function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function isVis(id){return !!(ME&&DB.users[ME.id]&&DB.users[ME.id].logs&&DB.users[ME.id].logs[id]);}
 function getLog(id){return ME?((DB.users[ME.id]||{}).logs||{})[id]||null:null;}
+function slugify(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');}
+function pickFirst(row, keys){
+  for(var i=0;i<keys.length;i++){
+    var val=row[keys[i]];
+    if(val!==undefined && val!==null && val!=='') return val;
+  }
+  return '';
+}
+function numOrNull(v){
+  var n=typeof v==='number'?v:parseFloat(v);
+  return isFinite(n)?n:null;
+}
+function formatFeet(v){
+  if(v===undefined || v===null || v==='') return '';
+  var s=String(v).trim();
+  return /ft/i.test(s)?s:(s+' ft');
+}
+function formatTrail(v){
+  if(v===undefined || v===null || v==='') return '';
+  var s=String(v).trim();
+  return /mi/i.test(s)?s:(s+' mi');
+}
+function normalizeFallRow(row){
+  if(!row || typeof row!=='object') return null;
+  var name=pickFirst(row,['name','waterfall_name','title']);
+  var lat=numOrNull(pickFirst(row,['lat','latitude']));
+  var lng=numOrNull(pickFirst(row,['lng','longitude','lon','long']));
+  if(!name || lat===null || lng===null) return null;
+  var id=slugify(pickFirst(row,['slug','waterfall_id','id'])||name);
+  return {
+    id:id||mkid(),
+    name:String(name).trim(),
+    region:String(pickFirst(row,['region','county','location','area'])||'Georgia').trim(),
+    lat:lat,
+    lng:lng,
+    height:formatFeet(pickFirst(row,['height','height_ft'])),
+    diff:String(pickFirst(row,['diff','difficulty'])||'Unknown').trim(),
+    type:String(pickFirst(row,['type','fall_type','category'])||'Waterfall').trim(),
+    trail:formatTrail(pickFirst(row,['trail','trail_length','distance','hike_distance']))||'Unknown',
+    fee:String(pickFirst(row,['fee','fees','parking_fee'])||'Free').trim(),
+    desc:String(pickFirst(row,['desc','description','notes'])||'A beautiful waterfall waiting to be explored.').trim()
+  };
+}
+function mergeFalls(rows){
+  var merged={}, order=[];
+  FALLS_FALLBACK.forEach(function(f){
+    merged[f.id]=Object.assign({},f);
+    order.push(f.id);
+  });
+  (rows||[]).forEach(function(row){
+    var fall=normalizeFallRow(row);
+    if(!fall) return;
+    if(!merged[fall.id]) order.push(fall.id);
+    merged[fall.id]=Object.assign({},merged[fall.id]||{},fall);
+  });
+  FALLS=order.map(function(id){return merged[id];}).filter(Boolean).sort(function(a,b){
+    return a.name.localeCompare(b.name);
+  });
+}
+async function loadFallsFromSupabase(){
+  try{
+    var res=await sb.from('waterfalls').select('*').order('name',{ascending:true});
+    if(res.error){
+      console.error('waterfalls load failed:',res.error);
+      FALLS=FALLS_FALLBACK.slice();
+      return;
+    }
+    if(res.data && res.data.length){
+      mergeFalls(res.data);
+    } else {
+      FALLS=FALLS_FALLBACK.slice();
+    }
+  } catch(err){
+    console.error('waterfalls load crashed:',err);
+    FALLS=FALLS_FALLBACK.slice();
+  }
+}
 function dataUrlToBlob(dataUrl){
   var parts=dataUrl.split(',');
   var mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/jpeg';
@@ -1237,6 +1315,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 (async function(){
   try {
+    await loadFallsFromSupabase();
     await hydrateSession();
     renderNav();
     await refreshAllData();
@@ -1249,32 +1328,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 });
 </script>
-<script>
-const PRELOADED_WATERFALLS = [
-{name:"Amicalola Falls",lat:34.56,lng:-84.24,state:"GA"},
-{name:"Tallulah Falls",lat:34.73,lng:-83.39,state:"GA"},
-{name:"Looking Glass Falls",lat:35.2963,lng:-82.7746,state:"NC"},
-{name:"Linville Falls",lat:35.9556,lng:-81.9268,state:"NC"},
-{name:"Dry Falls",lat:35.0683,lng:-83.2357,state:"NC"},
-{name:"Raven Cliff Falls",lat:35.0623,lng:-82.6405,state:"SC"},
-{name:"Issaqueena Falls",lat:34.8768,lng:-82.7051,state:"SC"},
-{name:"Fall Creek Falls",lat:35.6556,lng:-85.3560,state:"TN"},
-{name:"Cummins Falls",lat:36.0456,lng:-85.6494,state:"TN"},
-{name:"DeSoto Falls",lat:34.5537,lng:-85.6068,state:"AL"},
-{name:"Noccalula Falls",lat:34.0143,lng:-86.0066,state:"AL"}
-];
-
-function loadPreloadedFalls(){
- if(typeof map==='undefined') return;
- PRELOADED_WATERFALLS.forEach(w=>{
-   L.marker([w.lat,w.lng]).addTo(map)
-   .bindPopup(`<b>${w.name}</b><br>${w.state}<br><button onclick="openGallery(0)">View Photos</button>`);
- });
-}
-
-document.addEventListener("DOMContentLoaded", loadPreloadedFalls);
-</script>
-
 
 <footer style="
   margin-top:24px;
