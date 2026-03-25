@@ -921,6 +921,11 @@ function badgeCardArt(badge){
   }
   return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
 }
+function badgeMiniArt(badge){
+  if(badge.key==='member') return '<div class="badge-mark" data-tier="explorer">E</div>';
+  if(badge.key==='founder') return '<div class="badge-mark" data-tier="explorer">F</div>';
+  return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
+}
 function badgeProgressLine(badge, logCount){
   if(badge.key==='member') return 'Unlocked with your account.';
   if(badge.key==='founder') return badge.unlocked?'You joined in the first 100 explorers.':'Reserved for the first 100 explorers.';
@@ -934,7 +939,7 @@ function badgeProgressPct(badge, logCount){
   return Math.max(0,Math.min(100,Math.round((logCount/Math.max(badge.threshold||1,1))*100)));
 }
 function makeBadgePill(badge, logCount){
-  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeCardArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
+  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeMiniArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
 }
 function makeVaultBadgeCard(badge, logCount){
   return '<div class="badge-card'+(badge.unlocked?'':' locked')+'"><div class="badge-card-art">'+badgeCardArt(badge)+'</div><div class="badge-card-copy"><div class="badge-card-track">'+esc(badge.track)+'</div><div class="badge-card-name">'+esc(badge.label)+'</div><div class="badge-card-desc">'+esc(badge.desc)+'</div><div class="badge-card-progress">'+esc(badgeProgressLine(badge,logCount))+'</div>'+(badge.key==='founder'?'':'<div class="badge-card-bar"><span style="width:'+badgeProgressPct(badge,logCount)+'%"></span></div>')+'</div></div>';
