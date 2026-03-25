@@ -672,12 +672,19 @@ async function ensureProfile(user){
   return existing.data;
 }
 
+}
+
 async function hydrateSession(){
+
+  if(window.hydrating) return;
+  window.hydrating = true;
+
   var s = await sb.auth.getSession();
   var user = s.data && s.data.session && s.data.session.user;
 
   if(!user){
     ME = null;
+    window.hydrating = false;
     return;
   }
 
@@ -695,6 +702,8 @@ async function hydrateSession(){
     email: user.email,
     is_pro: prof && prof.is_pro === true ? true : false
   };
+
+  window.hydrating = false;
 }
 
 function mapPhotos(rows){
