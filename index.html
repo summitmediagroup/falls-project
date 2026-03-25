@@ -268,65 +268,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--raised);border:1px solid rgba(200,150,60,.3);color:var(--cream);padding:9px 18px;font-size:.72rem;z-index:9999;border-radius:2px;pointer-events:none;}
 /* Hidden photo store - images live in HTML, JS reads their src */
 #photo-store{display:none;}
-@media(max-width:600px){
-  #nav{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
-    padding:14px 16px;
-    gap:10px;
-    background:rgba(7,16,13,0.92);
-    backdrop-filter:blur(10px);
-    height:auto;
-    min-height:unset;
-  }
-
-  .nav-brand{
-    width:100%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-
-  .nav-tabs{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    gap:22px;
-    margin-top:2px;
-  }
-
-  #auth-area{
-    width:100%;
-    display:flex;
-    flex-direction:row;
-    justify-content:center;
-    align-items:center;
-    gap:8px;
-    margin-top:6px;
-    flex-wrap:wrap;
-    position:relative;
-    z-index:5;
-  }
-
-  #auth-area .btn-ghost,
-  #auth-area .btn-gold{
-    width:auto;
-    max-width:100%;
-    font-size:12px;
-    padding:8px 12px;
-  }
-
-  #auth-area .btn-gold{
-    width:100%;
-    max-width:320px;
-    text-align:center;
-    margin-top:8px;
-  }
-
+@media(max-width:680px){
   body{overflow:auto;}
-}
   #app{flex-direction:column;overflow:visible;min-height:auto;}
   .page{flex-direction:column!important;overflow:visible;min-height:auto;}
   #sidebar{width:100%;height:auto;max-height:46vh;}
@@ -366,30 +309,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <button class="ntab" id="t-explore">Stories</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
-  <div id="auth-area" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <button onclick="openAuth()" style="
-    background:transparent;
-    color:#F3EBDD;
-    border:1px solid rgba(243,235,221,0.25);
-    padding:10px 16px;
-    border-radius:999px;
-    font-size:14px;
-    cursor:pointer;
-    white-space:nowrap;
-  ">Sign In</button>
-
-  <button onclick="upgradeToPro()" style="
-    background:#C9B37E;
-    color:#132019;
-    border:none;
-    padding:10px 16px;
-    border-radius:999px;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    white-space:nowrap;
-  ">Unlock Explorer Journal • $3.99</button>
-</div>
+  <div id="auth-area"></div>
 </nav>
 <div id="app">
 <div id="pg-land" class="page on">
@@ -658,53 +578,36 @@ function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':
 
 async function ensureProfile(user){
   var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
-  var existing=await sb.from('Profiles').select('id,name,email,plan').eq('id',user.id).maybeSingle();
+  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
   if(!existing.data){
-    var ins=await sb.from('Profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('id,name,email,plan').single();
+    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('id,name,email,plan,is_pro').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
   if(!existing.data.name && nm){
-    await sb.from('Profiles').update({name:nm,email:user.email}).eq('id',user.id);
+    await sb.from('profiles').update({name:nm,email:user.email}).eq('id',user.id);
     existing.data.name=nm;
   }
   return existing.data;
 }
 
-}
-
 async function hydrateSession(){
-  var s = await sb.auth.getSession();
-  var user = s.data && s.data.session && s.data.session.user;
-
-  if(!user){
-    ME = null;
-    return;
-  }
-
-  var prof = null;
-  try {
-    prof = await ensureProfile(user);
-  } catch(e){
+  var s=await sb.auth.getSession();
+  var user=s.data&&s.data.session&&s.data.session.user;
+  if(!user){ME=null;return;}
+  var prof=null;
+  try{
+    prof=await ensureProfile(user);
+  }catch(e){
     console.log("Profile load failed, continuing anyway");
   }
-
-  var isPro = false;
-  try {
-    var proRes = await sb.from('profiles').select('is_pro').eq('id', user.id).maybeSingle();
-    if(!proRes.error && proRes.data){
-      isPro = proRes.data.is_pro === true;
-    }
-  } catch(e){
-    console.log("Pro lookup failed, continuing as free user");
-  }
-
-  ME = {
-    id: user.id,
-    name: (prof && prof.name) || user.email.split('@')[0],
-    email: user.email,
-    is_pro: isPro
+  ME={
+    id:user.id,
+    name:(prof&&prof.name)||user.email.split('@')[0],
+    email:user.email,
+    plan:(prof&&prof.plan)||'free',
+    is_pro: !!(prof && prof.is_pro===true)
   };
 }
 
@@ -985,8 +888,14 @@ function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in or create a free account to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to access your account, then upgrade to unlock your private journal and progress tracking.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Sign In</button></div>';
     var jb=document.getElementById('jauth');if(jb)jb.addEventListener('click',openAuth);
+    return;
+  }
+  if(!ME.is_pro){
+    mast.innerHTML='';
+    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Your account is active, but journal access is part of Explorer Journal.</p><button class="btn-gold" id="jup" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
+    var ju=document.getElementById('jup');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
   var logs=Object.entries((DB.users[ME.id]||{}).logs||{}).map(function(e){return{id:e[0],log:e[1]};}).sort(function(a,b){return b.log.ts-a.log.ts;});
@@ -1089,15 +998,14 @@ function renderNav(){
   }
 }
 function showPage(nm){
-
-  if(nm === 'journal' && (!ME || !ME.is_pro)){
+  if(nm==='journal' && (!ME || !ME.is_pro)){
     upgradeToPro();
     return;
   }
-
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
   document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
   document.getElementById('pg-'+nm).classList.add('on');
+  var tab=document.getElementById('t-'+nm);if(tab)tab.classList.add('on');
 }
 function goPage(nm){
   showPage(nm);
@@ -1191,6 +1099,7 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
     toast('Connected, but Supabase setup still needs a little polish');
   }
 })();
+});
 </script>
 
 <script>
