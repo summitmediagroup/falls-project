@@ -172,6 +172,20 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .jmast h1{font-family:"Cormorant",serif;font-size:clamp(1.3rem,2.5vw,1.9rem);font-weight:300;color:var(--cream);margin-bottom:4px;}
 .jmast-sub{font-size:.74rem;color:var(--mist);margin-bottom:18px;}
 .jmast-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px;}
+.jbadge-strip{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;}
+.jbadge-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--bdr);min-width:0;}
+.jbadge-pill.locked{opacity:.5;border-style:dashed;}
+.jbadge-pill-art{width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;}
+.jbadge-pill-art img{width:100%;height:100%;object-fit:cover;display:block;}
+.jbadge-pill-copy{min-width:0;}
+.jbadge-pill-k{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:3px;}
+.jbadge-pill-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;}
+.jbadge-pill-note{font-size:.65rem;color:rgba(255,255,255,.36);line-height:1.4;margin-top:2px;}
+.badge-mark{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(215,196,144,.55),rgba(35,56,43,.95));color:#f0dfb0;font-family:"Cormorant",serif;font-size:1rem;font-weight:700;letter-spacing:.05em;}
+.badge-mark[data-tier="first"]{background:radial-gradient(circle at 30% 30%,rgba(157,193,221,.45),rgba(42,67,81,.95));}
+.badge-mark[data-tier="scout"]{background:radial-gradient(circle at 30% 30%,rgba(165,191,148,.45),rgba(34,57,45,.95));}
+.badge-mark[data-tier="hunter"]{background:radial-gradient(circle at 30% 30%,rgba(137,178,191,.5),rgba(28,55,63,.95));}
+.badge-mark[data-tier="explorer"]{background:radial-gradient(circle at 30% 30%,rgba(215,196,144,.55),rgba(35,56,43,.95));}
 .jbadge-row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;}
 .jbadge-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--bdr);min-width:0;}
 .jbadge-card.priv{border-color:rgba(200,150,60,.24);box-shadow:inset 0 0 0 1px rgba(200,150,60,.06);}
@@ -186,6 +200,25 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .jstat{padding:11px 17px;background:var(--raised);border:1px solid var(--bdr);text-align:center;flex:1;max-width:125px;}
 .jstat-n{font-family:"Cormorant",serif;font-size:1.65rem;font-weight:300;color:var(--cream);line-height:1;}
 .jstat-l{font-size:.54rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);margin-top:2px;}
+.jbadge-vault-wrap{margin:22px 0 6px;padding:18px 18px 16px;background:linear-gradient(180deg,rgba(17,28,22,.96),rgba(11,18,14,.98));border:1px solid rgba(200,150,60,.16);}
+.jbadge-vault-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.jbadge-vault-eye{font-size:.54rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
+.jbadge-vault-title{font-family:"Cormorant",serif;font-size:1.35rem;font-weight:300;color:var(--cream);margin-bottom:5px;}
+.jbadge-vault-sub{font-size:.73rem;line-height:1.6;color:rgba(255,255,255,.42);max-width:520px;}
+.jbadge-vault{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.jbadge-vault.is-hidden{display:none;}
+.badge-card{display:flex;gap:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);min-width:0;}
+.badge-card.locked{opacity:.58;filter:saturate(.78);}
+.badge-card-art{width:72px;height:72px;border-radius:18px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;position:relative;}
+.badge-card-art img{width:100%;height:100%;object-fit:cover;display:block;}
+.badge-card-copy{min-width:0;}
+.badge-card-track{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px;}
+.badge-card-name{font-family:"Cormorant",serif;font-size:1.05rem;color:var(--cream);margin-bottom:5px;}
+.badge-card-desc{font-size:.72rem;line-height:1.55;color:rgba(255,255,255,.48);margin-bottom:7px;}
+.badge-card-progress{font-size:.68rem;line-height:1.45;color:rgba(244,231,192,.84);}
+.badge-card.locked .badge-card-progress{color:rgba(255,255,255,.52);}
+.badge-card-bar{height:4px;background:rgba(255,255,255,.06);margin-top:8px;overflow:hidden;border-radius:999px;}
+.badge-card-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--sage),var(--gold));}
 .jentries{padding:20px 28px 56px;display:flex;flex-direction:column;gap:1px;}
 .je{display:flex;background:var(--surf);border:1px solid var(--bdr);cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden;}
 .je::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold);opacity:0;transition:opacity .2s;}
@@ -347,6 +380,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .feats-head{padding:22px 16px 14px;}
   .feats{grid-template-columns:1fr;}
   .land-cta,.jmast,.jentries,.ex-sec,.ex-grid{padding-left:16px;padding-right:16px;}
+  .jbadge-vault{grid-template-columns:1fr;}
+  .badge-card{padding:11px;}
+  .badge-card-art{width:64px;height:64px;}
   .jstats{flex-wrap:wrap;}
   .jstat{max-width:none;min-width:calc(50% - 1px);}
   .ex-grid{grid-template-columns:1fr;}
@@ -865,6 +901,44 @@ function getFounderBadge(profile){
   }
   return null;
 }
+var BADGE_ART={
+  member:'badge-explorer.png',
+  founder:'badge-founding-explorer.png'
+};
+function getBadgeVault(logCount, isFounder){
+  return [
+    {key:'member',track:'Member Badge',label:'Explorer',desc:'Every account starts with the Explorer badge. You are officially in the record now.',unlocked:true,image:BADGE_ART.member,kind:'member'},
+    {key:'founder',track:'Founding Status',label:'Founding Explorer',desc:'Reserved for the first 100 explorers who joined The Falls Project.',unlocked:!!isFounder,image:BADGE_ART.founder,kind:'founder'},
+    {key:'first-drop',track:'Activity Badge',label:'First Drop',desc:'Log your first waterfall to begin your collection.',threshold:1,unlocked:logCount>=1,tier:'first',mark:'I'},
+    {key:'trail-scout',track:'Activity Badge',label:'Trail Scout',desc:'For explorers who are starting to build a real trail rhythm.',threshold:5,unlocked:logCount>=5,tier:'scout',mark:'V'},
+    {key:'waterfall-hunter',track:'Activity Badge',label:'Waterfall Hunter',desc:'A mark for the families who keep chasing the next fall.',threshold:10,unlocked:logCount>=10,tier:'hunter',mark:'X'},
+    {key:'activity-explorer',track:'Activity Badge',label:'Explorer',desc:'Your top activity crest for logging 25 waterfalls.',threshold:25,unlocked:logCount>=25,tier:'explorer',mark:'XXV'}
+  ];
+}
+function badgeCardArt(badge){
+  if(badge.image){
+    return '<img src="'+esc(badge.image)+'" alt="'+esc(badge.label)+' badge">';
+  }
+  return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
+}
+function badgeProgressLine(badge, logCount){
+  if(badge.key==='member') return 'Unlocked with your account.';
+  if(badge.key==='founder') return badge.unlocked?'You joined in the first 100 explorers.':'Reserved for the first 100 explorers.';
+  if(badge.unlocked) return 'Unlocked after logging '+badge.threshold+' waterfall'+(badge.threshold===1?'':'s')+'.';
+  var remaining=Math.max((badge.threshold||0)-logCount,0);
+  return 'Log '+remaining+' more waterfall'+(remaining===1?'':'s')+' to unlock.';
+}
+function badgeProgressPct(badge, logCount){
+  if(badge.key==='member') return 100;
+  if(badge.key==='founder') return badge.unlocked?100:0;
+  return Math.max(0,Math.min(100,Math.round((logCount/Math.max(badge.threshold||1,1))*100)));
+}
+function makeBadgePill(badge, logCount){
+  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeCardArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
+}
+function makeVaultBadgeCard(badge, logCount){
+  return '<div class="badge-card'+(badge.unlocked?'':' locked')+'"><div class="badge-card-art">'+badgeCardArt(badge)+'</div><div class="badge-card-copy"><div class="badge-card-track">'+esc(badge.track)+'</div><div class="badge-card-name">'+esc(badge.label)+'</div><div class="badge-card-desc">'+esc(badge.desc)+'</div><div class="badge-card-progress">'+esc(badgeProgressLine(badge,logCount))+'</div>'+(badge.key==='founder'?'':'<div class="badge-card-bar"><span style="width:'+badgeProgressPct(badge,logCount)+'%"></span></div>')+'</div></div>';
+}
 function makeBadgeMarkup(badge, tone){
   if(!badge) return '';
   return '<span class="pbadge '+tone+'">'+esc(badge.icon+' '+badge.label)+'</span>';
@@ -1361,23 +1435,35 @@ function renderJournal(){
   var total=FALLS.length,vis=logs.length,sum=0,cnt=0;
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
   var avg=cnt?sum/cnt:0;
-  var activityBadge=getActivityBadge(vis);
-  var founderBadge=getFounderBadge(ME);
-  var badgeCards=[makeBadgeCardMarkup('priv',activityBadge),makeBadgeCardMarkup('pub',founderBadge)].filter(Boolean).join('');
+  var badgeVault=getBadgeVault(vis,ME.is_founding_explorer);
+  var earnedBadges=badgeVault.filter(function(b){return b.unlocked;});
+  var nextBadge=badgeVault.find(function(b){return !b.unlocked && b.key!=='founder';});
+  var badgeStrip=earnedBadges.slice(0,3).map(function(b){return makeBadgePill(b,vis);}).join('');
+  var badgeCards=badgeVault.map(function(b){return makeVaultBadgeCard(b,vis);}).join('');
 
   mast.innerHTML='<div class="jmast-eye">Personal Record</div>'
     +'<h1>'+esc(ME.name)+'&#39;s Trail Journal</h1>'
     +'<p class="jmast-sub">Log each waterfall, choose what stays private, and share the stories you want the community to see.</p>'
-    +'<div class="jmast-actions"><button class="btn-ghost" id="btn-manage-sub-journal">Manage Subscription</button></div>'
-    +(badgeCards?'<div class="jbadge-row">'+badgeCards+'</div>':'')
+    +'<div class="jmast-actions"><button class="btn-ghost" id="btn-manage-sub-journal">Manage Subscription</button><button class="btn-ghost" id="toggle-badges">See My Badges</button></div>'
+    +(badgeStrip?'<div class="jbadge-strip">'+badgeStrip+'</div>':'')
+    +(nextBadge?'<p class="jmast-sub" style="margin-top:-6px;margin-bottom:18px;color:rgba(244,231,192,.8)">Next unlock: '+esc(nextBadge.label)+' · '+esc(badgeProgressLine(nextBadge,vis))+'</p>':'')
     +'<div class="jstats">'
       +'<div class="jstat"><div class="jstat-n">'+vis+'</div><div class="jstat-l">Visited</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+Math.max(total-vis,0)+'</div><div class="jstat-l">Remaining</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+total+'</div><div class="jstat-l">Total Falls</div></div>'
       +(avg>0?'<div class="jstat"><div class="jstat-n" style="color:var(--gold)">'+avg.toFixed(1)+'&#9733;</div><div class="jstat-l">Avg Rating</div></div>':'')
-    +'</div>';
+    +'</div>'
+    +'<div class="jbadge-vault-wrap"><div class="jbadge-vault-top"><div><div class="jbadge-vault-eye">Badge Vault</div><div class="jbadge-vault-title">Collect your explorer marks</div><div class="jbadge-vault-sub">Watch your trail record grow, unlock each activity crest, and keep an eye on what comes next.</div></div></div><div class="jbadge-vault is-hidden" id="badge-vault">'+badgeCards+'</div></div>';
   var manageBtn=document.getElementById('btn-manage-sub-journal');
   if(manageBtn) manageBtn.addEventListener('click',openBillingPortal);
+  var toggleBadges=document.getElementById('toggle-badges');
+  var badgeVaultEl=document.getElementById('badge-vault');
+  if(toggleBadges && badgeVaultEl){
+    toggleBadges.addEventListener('click',function(){
+      var hidden=badgeVaultEl.classList.toggle('is-hidden');
+      toggleBadges.textContent=hidden?'See My Badges':'Hide My Badges';
+    });
+  }
   if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
   ent.innerHTML='';
   logs.forEach(function(e){
