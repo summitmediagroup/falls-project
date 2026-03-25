@@ -269,7 +269,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 /* Hidden photo store - images live in HTML, JS reads their src */
 #photo-store{display:none;}
 @media(max-width:600px){
-  #nav{
+  #auth-area{
+  position:relative;
+  z-index:5;
+}
+
+#auth-area .btn-gold{
+  margin-top:8px;
+}#nav{
     display:flex;
     flex-wrap:wrap;
     align-items:center;
