@@ -578,15 +578,15 @@ function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':
 
 async function ensureProfile(user){
   var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
-  var existing=await sb.from('Profiles').select('id,name,email,plan').eq('id',user.id).maybeSingle();
+  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
   if(!existing.data){
-    var ins=await sb.from('Profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('id,name,email,plan').single();
+    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free',is_pro:false}).select('id,name,email,plan,is_pro').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
   if(!existing.data.name && nm){
-    await sb.from('Profiles').update({name:nm,email:user.email}).eq('id',user.id);
+    await sb.from('profiles').update({name:nm,email:user.email}).eq('id',user.id);
     existing.data.name=nm;
   }
   return existing.data;
