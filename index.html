@@ -655,6 +655,16 @@ function formatTrail(v){
   var s=String(v).trim();
   return /mi/i.test(s)?s:(s+' mi');
 }
+function normalizeState(v){
+  var raw=String(v||'').trim().toLowerCase();
+  if(!raw) return {code:'',name:''};
+  if(raw==='ga' || raw==='georgia') return {code:'GA',name:'Georgia'};
+  if(raw==='nc' || raw==='north carolina') return {code:'NC',name:'North Carolina'};
+  if(raw==='sc' || raw==='south carolina') return {code:'SC',name:'South Carolina'};
+  if(raw==='tn' || raw==='tennessee') return {code:'TN',name:'Tennessee'};
+  if(raw==='al' || raw==='alabama') return {code:'AL',name:'Alabama'};
+  return {code:String(v).trim().toUpperCase(),name:String(v).trim()};
+}
 function normalizeFallRow(row){
   if(!row || typeof row!=='object') return null;
   var name=pickFirst(row,['name','waterfall_name','title']);
@@ -663,13 +673,14 @@ function normalizeFallRow(row){
   if(!name || lat===null || lng===null) return null;
   var id=slugify(pickFirst(row,['slug','waterfall_id','id'])||name);
   var region=String(pickFirst(row,['region','county','location','area'])||'').trim();
-  var state=String(pickFirst(row,['state','state_code'])||'').trim();
-  var regionLabel=region || state || 'Waterfall Region';
+  var stateInfo=normalizeState(pickFirst(row,['state','state_code']));
+  var regionLabel=region || stateInfo.name || 'Waterfall Region';
   return {
     id:id||mkid(),
     name:String(name).trim(),
     region:regionLabel,
-    state:state,
+    state:stateInfo.code,
+    state_name:stateInfo.name,
     lat:lat,
     lng:lng,
     height:formatFeet(pickFirst(row,['height','height_ft'])),
@@ -683,7 +694,7 @@ function normalizeFallRow(row){
 function mergeFalls(rows){
   var merged={}, order=[];
   FALLS_FALLBACK.forEach(function(f){
-    merged[f.id]=Object.assign({state:'GA'},f);
+    merged[f.id]=Object.assign({state:'GA',state_name:'Georgia'},f);
     order.push(f.id);
   });
   (rows||[]).forEach(function(row){
@@ -982,7 +993,7 @@ function renderList(){
   var el=document.getElementById('falls-list');el.innerHTML='';
   FALLS.filter(function(f){
     var state=String(f.state||'').toLowerCase();
-    var haystack=[f.name,f.region,f.state].join(' ').toLowerCase();
+    var haystack=[f.name,f.region,f.state,f.state_name].join(' ').toLowerCase();
     if(fMode==='visited'&&!isVis(f.id))return false;
     if(fMode==='unvisited'&&isVis(f.id))return false;
     if(q && !haystack.includes(q)){
