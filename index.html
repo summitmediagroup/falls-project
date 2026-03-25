@@ -619,17 +619,31 @@ function makeBadgeMarkup(badge, tone){
 }
 
 async function ensureProfile(user){
-  var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
+  var email=normalizeEmail(user.email);
+  var nm=(user.user_metadata&&user.user_metadata.name)||email.split('@')[0];
   var existing=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
+  if(!existing.data && email){
+    var byEmail=await sb.from('profiles').select('*').eq('email',email).maybeSingle();
+    if(byEmail.error && byEmail.error.code!=='PGRST116') throw byEmail.error;
+    if(byEmail.data){
+      if((!byEmail.data.name || byEmail.data.name!==nm) && nm){
+        await sb.from('profiles').update({name:nm,email:email}).eq('id',byEmail.data.id);
+        byEmail.data.name=nm;
+        byEmail.data.email=email;
+      }
+      return byEmail.data;
+    }
+  }
   if(!existing.data){
-    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('*').single();
+    var ins=await sb.from('profiles').insert({id:user.id,email:email,name:nm,plan:'free'}).select('*').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
   if(!existing.data.name && nm){
-    await sb.from('profiles').update({name:nm,email:user.email}).eq('id',user.id);
+    await sb.from('profiles').update({name:nm,email:email}).eq('id',user.id);
     existing.data.name=nm;
+    existing.data.email=email;
   }
   return existing.data;
 }
