@@ -84,8 +84,11 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--sage),var(--gold));transition:width .5s;}
 .prog-txt{font-size:.58rem;color:var(--mist);margin-bottom:10px;}
 .sb-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.sb-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
 .sb-help{padding:6px 10px;background:rgba(200,150,60,.08);border:1px solid rgba(200,150,60,.24);color:var(--gold);font-family:"DM Sans",sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;white-space:nowrap;transition:all .2s;}
 .sb-help:hover{background:rgba(200,150,60,.16);border-color:rgba(200,150,60,.4);}
+.sb-near{padding:6px 10px;background:rgba(90,122,92,.12);border:1px solid rgba(90,122,92,.28);color:var(--mist);font-family:"DM Sans",sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;white-space:nowrap;transition:all .2s;}
+.sb-near:hover{background:rgba(90,122,92,.22);border-color:rgba(90,122,92,.45);color:var(--cream);}
 .ftabs{display:flex;gap:5px;margin-bottom:9px;}
 .ftab{padding:4px 10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.36);font-family:"DM Sans",sans-serif;font-size:.6rem;font-weight:500;letter-spacing:.07em;cursor:pointer;transition:all .2s;border-radius:1px;}
 .ftab.on{background:var(--gold);border-color:var(--gold);color:var(--bg);}
@@ -393,7 +396,10 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
           <button class="ftab" id="f-visited">Visited</button>
           <button class="ftab" id="f-unvisited">To Visit</button>
         </div>
-        <button class="sb-help" id="btn-trail-guide">Trail Guide</button>
+        <div class="sb-actions">
+          <button class="sb-near" id="btn-near-me">Near Me</button>
+          <button class="sb-help" id="btn-trail-guide">Trail Guide</button>
+        </div>
       </div>
       <input class="sb-search" id="srch" type="text" placeholder="Search falls, region, or state...">
     </div>
@@ -618,7 +624,7 @@ var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
 var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbWVsaGRseXloYmticmR6cnRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODE4NTMsImV4cCI6MjA4OTc1Nzg1M30.GK9TQ06Mbbj1LMQHr7WKwcfVmGiLgf5eFc6Zak9gZkQ";
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null;
+var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null;
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -925,6 +931,48 @@ function mkIcon(v){
   return L.divIcon({className:'',html:'<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:'+c+';border:2px solid '+b+';box-shadow:0 3px 9px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:10px">&#128167;</span></div>',iconSize:[24,24],iconAnchor:[12,24],popupAnchor:[0,-24]});
 }
 function refreshMk(id){if(MK[id])MK[id].setIcon(mkIcon(isVis(id)));}
+function userIcon(){
+  return L.divIcon({
+    className:'',
+    html:'<div style="width:18px;height:18px;border-radius:50%;background:#d9f3e1;border:3px solid #4a7c96;box-shadow:0 0 0 8px rgba(74,124,150,.18),0 4px 12px rgba(0,0,0,.25);"></div>',
+    iconSize:[18,18],
+    iconAnchor:[9,9]
+  });
+}
+function centerOnUser(){
+  if(!navigator.geolocation){
+    toast('Location is not available on this device');
+    return;
+  }
+  var btn=document.getElementById('btn-near-me');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='Locating...';
+  }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude,lng=pos.coords.longitude;
+    if(!MAP) initMap();
+    if(USER_MARKER){MAP.removeLayer(USER_MARKER);}
+    USER_MARKER=L.marker([lat,lng],{icon:userIcon()}).addTo(MAP).bindTooltip('You are here',{direction:'top',offset:[0,-10]});
+    MAP.setView([lat,lng],10,{animate:true});
+    if(USER_MARKER && USER_MARKER.openTooltip) USER_MARKER.openTooltip();
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Near Me';
+    }
+  },function(err){
+    console.error('geolocation failed:',err);
+    toast('Could not get your location');
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Near Me';
+    }
+  },{
+    enableHighAccuracy:true,
+    timeout:10000,
+    maximumAge:300000
+  });
+}
 
 function renderList(){
   var q=document.getElementById('srch').value.trim().toLowerCase();
@@ -938,11 +986,18 @@ function renderList(){
     if(fMode==='visited'&&!isVis(f.id))return false;
     if(fMode==='unvisited'&&isVis(f.id))return false;
     if(q && !haystack.includes(q)){
-      if(!(q==='georgia' && state==='ga')) return false;
-      if(!(q==='north carolina' && state==='nc')) return false;
-      if(!(q==='south carolina' && state==='sc')) return false;
-      if(!(q==='tennessee' && state==='tn')) return false;
-      if(!(q==='alabama' && state==='al')) return false;
+      var stateMatches=
+        (q==='georgia' && state==='ga') ||
+        (q==='ga' && state==='ga') ||
+        (q==='north carolina' && state==='nc') ||
+        (q==='nc' && state==='nc') ||
+        (q==='south carolina' && state==='sc') ||
+        (q==='sc' && state==='sc') ||
+        (q==='tennessee' && state==='tn') ||
+        (q==='tn' && state==='tn') ||
+        (q==='alabama' && state==='al') ||
+        (q==='al' && state==='al');
+      if(!stateMatches) return false;
     }
     return true;
   }).forEach(function(f){
@@ -1318,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(fu)fu.addEventListener('click',function(){setFilter('unvisited');});
   // Search
   var sr=document.getElementById('srch');if(sr)sr.addEventListener('input',renderList);
+  var nm=document.getElementById('btn-near-me');if(nm)nm.addEventListener('click',centerOnUser);
   var tg=document.getElementById('btn-trail-guide');if(tg)tg.addEventListener('click',function(){openOv('ov-guide');});
   // Modal closes
   ['wf','auth','post','guide'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
