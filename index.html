@@ -1103,15 +1103,18 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
     }
   });
 
+  (async function(){
   try {
     await hydrateSession();
     renderNav();
     await refreshAllData();
   } catch(err) {
     console.error(err);
-    renderNav();renderExplore();
+    renderNav();
+    renderExplore();
     toast('Connected, but Supabase setup still needs a little polish');
   }
+})();
 </script>
 
 <script>
