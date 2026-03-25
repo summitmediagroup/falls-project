@@ -609,26 +609,27 @@ async function openBillingPortal(){
       btn.disabled=true;
       btn.textContent='Opening...';
     }
-    var res=await sb.functions.invoke('stripe-billing-portal',{
-      body:{returnUrl:window.location.href}
+    var sessionRes=await sb.auth.getSession();
+    var session=sessionRes && sessionRes.data && sessionRes.data.session;
+    if(!session || !session.access_token){
+      throw new Error('Not signed in');
+    }
+    var res=await fetch(SUPABASE_URL+'/functions/v1/stripe-billing-portal',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token,
+        'apikey':SUPABASE_ANON_KEY
+      },
+      body:JSON.stringify({returnUrl:window.location.href})
     });
-    if(res.error) throw res.error;
-    var data=res.data||{};
-    if(!data.url) throw new Error(data.error||'Billing portal link missing');
+    var data=await res.json().catch(function(){return {};});
+    if(!res.ok) throw new Error((data && data.error) || 'Could not open billing portal');
+    if(!data || !data.url) throw new Error(data.error||'Billing portal link missing');
     window.location.href=data.url;
   } catch(err){
     console.error(err);
-    var msg='Could not open subscription settings';
-    if(err && err.context && typeof err.context.json==='function'){
-      try{
-        var body=await err.context.json();
-        if(body && body.error) msg=body.error;
-      } catch(_ignore){}
-    }
-    if(msg==='Could not open subscription settings' && err && err.message){
-      msg=err.message;
-    }
-    toast(msg);
+    toast(err && err.message ? err.message : 'Could not open subscription settings');
   } finally {
     var btn=document.getElementById('btn-manage-sub-nav')||document.getElementById('btn-manage-sub-journal');
     if(btn){
