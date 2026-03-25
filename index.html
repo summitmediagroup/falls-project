@@ -306,10 +306,33 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   </div>
   <div class="nav-tabs">
     <button class="ntab" id="t-map">Map</button>
-    <button class="ntab" id="t-explore">Stories</button>
+    <button class="ntab" id="t-explore">Explore</button>
     <button class="ntab" id="t-journal">Journal</button>
   </div>
-  <div id="auth-area"></div>
+  <div id="auth-area" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <button id="btn-signin" style="
+    background:transparent;
+    color:#F3EBDD;
+    border:1px solid rgba(243,235,221,0.25);
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:14px;
+    cursor:pointer;
+    white-space:nowrap;
+  ">Sign In</button>
+
+  <button onclick="upgradeToPro()" style="
+    background:#C9B37E;
+    color:#132019;
+    border:none;
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  ">Unlock Explorer Journal • $3.99</button>
+</div>
 </nav>
 <div id="app">
 <div id="pg-land" class="page on">
@@ -578,62 +601,26 @@ function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':
 
 async function ensureProfile(user){
   var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
-  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro').eq('id',user.id).maybeSingle();
+  var existing=await sb.from('Profiles').select('id,name,email,plan').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
   if(!existing.data){
-    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('id,name,email,plan,is_pro').single();
+    var ins=await sb.from('Profiles').insert({id:user.id,email:user.email,name:nm,plan:'free'}).select('id,name,email,plan').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
   if(!existing.data.name && nm){
-    await sb.from('profiles').update({name:nm,email:user.email}).eq('id',user.id);
+    await sb.from('Profiles').update({name:nm,email:user.email}).eq('id',user.id);
     existing.data.name=nm;
   }
   return existing.data;
 }
 
 async function hydrateSession(){
-  var s = await sb.auth.getSession();
-  var user = s.data && s.data.session && s.data.session.user;
-
-  if(!user){
-    ME = null;
-    return;
-  }
-
-  var nm = (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0];
-
-  var profRes = await sb
-    .from('profiles')
-    .select('id,name,email,plan,is_pro')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  var prof = profRes.data;
-
-  if(!prof){
-    var ins = await sb
-      .from('profiles')
-      .insert({
-        id: user.id,
-        email: user.email,
-        name: nm,
-        plan: 'free',
-        is_pro: false
-      })
-      .select('id,name,email,plan,is_pro')
-      .single();
-
-    prof = ins.data;
-  }
-
-  ME = {
-    id: user.id,
-    name: (prof && prof.name) || nm,
-    email: user.email,
-    plan: (prof && prof.plan) || 'free',
-    is_pro: ((prof && (prof.is_pro === true || prof.plan === 'pro')) || user.email === 'sheffieldbecca@gmail.com') ? true : false
-  };
+  var s=await sb.auth.getSession();
+  var user=s.data&&s.data.session&&s.data.session.user;
+  if(!user){ME=null;return;}
+  var prof=await ensureProfile(user);
+  ME={id:user.id,name:(prof&&prof.name)||user.email.split('@')[0],email:user.email,plan:(prof&&prof.plan)||'free'};
 }
 
 function mapPhotos(rows){
@@ -913,14 +900,8 @@ function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to access your account, then upgrade to unlock your private journal and progress tracking.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Sign In</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in or create a free account to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
     var jb=document.getElementById('jauth');if(jb)jb.addEventListener('click',openAuth);
-    return;
-  }
-  if(!ME.is_pro){
-    mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Your account is active, but journal access is part of Explorer Journal.</p><button class="btn-gold" id="jup" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
-    var ju=document.getElementById('jup');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
   var logs=Object.entries((DB.users[ME.id]||{}).logs||{}).map(function(e){return{id:e[0],log:e[1]};}).sort(function(a,b){return b.log.ts-a.log.ts;});
@@ -999,39 +980,27 @@ async function doLogout(){
 }
 function renderNav(){
   var el=document.getElementById('auth-area');
-  if(!el) return;
-
-  if(ME && ME.is_pro){
-    el.innerHTML =
-      '<div class="nav-user">' +
-        '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
-        '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
-        '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
-      '</div>';
-    var lo=document.getElementById('btn-lo');
-    if(lo) lo.addEventListener('click',doLogout);
+  if(ME && ME.is_pro === true){
+    el.innerHTML='<div class="nav-user"><div class="nav-av">'+esc(ME.name[0].toUpperCase())+'</div><span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name)+'</span><button class="btn-ghost" id="btn-lo">Sign Out</button></div>';
+    var lo=document.getElementById('btn-lo');if(lo)lo.addEventListener('click',doLogout);
   } else {
-    el.innerHTML =
-      '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
-      '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
-
-    var si=document.getElementById('btn-signin');
-    var up=document.getElementById('btn-upgrade');
-
-    if(si) si.addEventListener('click',openAuth);
-    if(up) up.addEventListener('click',upgradeToPro);
+    el.innerHTML='<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button><button onclick="upgradeToPro()" style="
+  background:#C9B37E;
+  color:#132019;
+  border:none;
+  padding:10px 16px;
+  border-radius:999px;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+">
+  Unlock Explorer Journal • $3.99
+</button>
+    var si=document.getElementById('btn-signin'),jo=document.getElementById('btn-jo');
+    if(si)si.addEventListener('click',openAuth);if(jo)jo.addEventListener('click',openAuth);
   }
 }
 function showPage(nm){
-  if(nm === 'journal'){
-  const s = await sb.auth.getSession();
-  const user = s.data && s.data.session && s.data.session.user;
-
-  if(!user || !ME || !ME.is_pro){
-    upgradeToPro();
-    return;
-  }
-}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
   document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
   document.getElementById('pg-'+nm).classList.add('on');
@@ -1107,20 +1076,28 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
-  sb.auth.onAuthStateChange(function(event, session){
-  if(session && session.user){
-    setTimeout(async function(){
-      await hydrateSession();
-      renderNav();
-      await refreshAllData();
-    }, 0);
-  } else if(event==='SIGNED_OUT'){
-    ME=null;DB={users:{},posts:{}};
-    renderNav();renderList();renderExplore();renderJournal();
-  }
-});
+  sb.auth.onAuthStateChange(async function(event, session){
+    if(session && session.user){
 
-(async function(){
+  const { data } = await sb
+    .from('profiles')
+    .select('is_pro')
+    .eq('id', session.user.id)
+    .single();
+
+  ME = {
+    id: session.user.id,
+    name: (session.user.user_metadata && session.user.user_metadata.name) || session.user.email.split('@')[0],
+    email: session.user.email,
+    is_pro: data && data.is_pro ? true : false
+  };
+
+  renderNav();
+} else if(event==='SIGNED_OUT'){
+      ME=null;DB={users:{},posts:{}};renderNav();renderList();renderExplore();renderJournal();
+    }
+  });
+
   try {
     await hydrateSession();
     renderNav();
@@ -1130,8 +1107,6 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
     renderNav();renderExplore();
     toast('Connected, but Supabase setup still needs a little polish');
   }
-})();
-});
 </script>
 
 <script>
@@ -1160,67 +1135,6 @@ function loadPreloadedFalls(){
 document.addEventListener("DOMContentLoaded", loadPreloadedFalls);
 </script>
 
-
-<!-- PRO SYSTEM -->
-<script>
-// Fake user state (will connect to Supabase auth later)
-let currentUser = {
-  is_pro: false,
-  founder: false,
-  invite_code: null
-};
-
-// Invite code unlock
-function applyInviteCode(code){
-  if(code === "FOUNDERS40"){
-    currentUser.is_pro = true;
-    currentUser.founder = true;
-    alert("🌟 Founding Member Unlocked!");
-    updateUI();
-  } else {
-    alert("Invalid code");
-  }
-}
-
-// Upgrade button (replace with your Stripe link)
-function upgradeToPro(){
-  window.location.href = "https://buy.stripe.com/4gMeVd9tAgHgdk5eX8a3u00";
-}
-
-// Gate function
-function requirePro(action){
-  if(!currentUser.is_pro){
-    upgradeToPro();
-    return false;
-  }
-  return true;
-}
-
-// Log waterfall
-function logWaterfall(name){
-  if(!requirePro()) return;
-  alert("✅ Logged: " + name);
-}
-
-// Journal entry
-function addJournal(){
-  if(!requirePro()) return;
-  const entry = prompt("Write your memory:");
-  if(entry){
-    alert("Saved to your private journal 🌿");
-  }
-}
-
-// UI update
-function updateUI(){
-  const badge = document.getElementById("proBadge");
-  if(badge){
-    badge.innerText = currentUser.is_pro ? "🌿 Pro Member" : "Free Explorer";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", updateUI);
-</script>
 
 <footer style="
   margin-top:24px;
