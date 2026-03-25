@@ -269,14 +269,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 /* Hidden photo store - images live in HTML, JS reads their src */
 #photo-store{display:none;}
 @media(max-width:600px){
-  #auth-area{
-  position:relative;
-  z-index:5;
-}
-
-#auth-area .btn-gold{
-  margin-top:8px;
-}#nav{
+  #nav{
     display:flex;
     flex-wrap:wrap;
     align-items:center;
@@ -285,6 +278,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     gap:10px;
     background:rgba(7,16,13,0.92);
     backdrop-filter:blur(10px);
+    height:auto;
+    min-height:unset;
   }
 
   .nav-brand{
@@ -301,6 +296,32 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     gap:22px;
     margin-top:2px;
   }
+
+  #auth-area{
+    width:100%;
+    display:flex;
+    flex-direction:row;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    margin-top:6px;
+    flex-wrap:wrap;
+    position:relative;
+    z-index:5;
+  }
+
+  #auth-area .btn-ghost,
+  #auth-area .btn-gold{
+    width:auto;
+    max-width:100%;
+    font-size:12px;
+    padding:8px 12px;
+  }
+
+  #auth-area .btn-gold{
+    margin-top:8px;
+  }
+}
 
   ##auth-area{
   width:100%;
