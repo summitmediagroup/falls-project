@@ -896,11 +896,7 @@ function renderJournal(){
   var total=FALLS.length,vis=logs.length,sum=0,cnt=0;
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
   var avg=cnt?sum/cnt:0;
-  var badge = '';
-if(vis >= 25) badge = 'Explorer 🔥';
-else if(vis >= 10) badge = 'Waterfall Hunter 🌊';
-else if(vis >= 5) badge = 'Trail Scout 🥾';
-else if(vis >= 1) badge = 'First Drop 💧';
+  
   var badgeHtml = badge ? '<div class="pbadge pub" style="display:inline-block;margin-top:10px">' + esc(badge) + '</div>' : '';
  mast.innerHTML=`<div class="jmast-eye">Personal Record</div><h1>${esc(ME.name)}'s Trail Journal</h1><p class="jmast-sub">Your waterfall adventure log</p>${badgeHtml}<div class="jstats"><div class="jstat"><div class="jstat-n">${vis}</div><div class="jstat-l">Visited</div></div><div class="jstat"><div class="jstat-n">${total-vis}</div><div class="jstat-l">Remaining</div></div><div class="jstat"><div class="jstat-n">${Math.round(vis/total*100)}%</div><div class="jstat-l">Complete</div></div>${avg>0?`<div class="jstat"><div class="jstat-n" style="color:var(--gold)">${avg.toFixed(1)}&#9733;</div><div class="jstat-l">Avg Rating</div></div>`:''}</div>`;
   if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
