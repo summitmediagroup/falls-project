@@ -175,8 +175,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .jbadge-strip{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;}
 .jbadge-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--bdr);min-width:0;}
 .jbadge-pill.locked{opacity:.5;border-style:dashed;}
-.jbadge-pill-art{width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;}
-.jbadge-pill-art img{width:100%;height:100%;object-fit:cover;display:block;}
+.jbadge-pill-art{width:56px;height:56px;flex-shrink:0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;padding:3px;border-radius:14px;}
+.jbadge-pill-art img{width:100%;height:100%;object-fit:contain;display:block;}
 .jbadge-pill-copy{min-width:0;}
 .jbadge-pill-k{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:3px;}
 .jbadge-pill-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;}
@@ -921,15 +921,10 @@ function badgeCardArt(badge){
   }
   return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
 }
-function badgeMiniArt(badge){
-  if(badge.key==='member') return '<div class="badge-mark" data-tier="explorer">E</div>';
-  if(badge.key==='founder') return '<div class="badge-mark" data-tier="explorer">F</div>';
-  return '<div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div>';
-}
 function badgeProgressLine(badge, logCount){
   if(badge.key==='member') return 'Unlocked with your account.';
   if(badge.key==='founder') return badge.unlocked?'You joined in the first 100 explorers.':'Reserved for the first 100 explorers.';
-  if(badge.unlocked) return 'Unlocked after logging '+badge.threshold+' waterfall'+(badge.threshold===1?'':'s')+'.';
+  if(badge.unlocked) return 'Earned · '+logCount+' waterfall'+(logCount===1?'':'s')+' logged.';
   var remaining=Math.max((badge.threshold||0)-logCount,0);
   return 'Log '+remaining+' more waterfall'+(remaining===1?'':'s')+' to unlock.';
 }
@@ -939,7 +934,7 @@ function badgeProgressPct(badge, logCount){
   return Math.max(0,Math.min(100,Math.round((logCount/Math.max(badge.threshold||1,1))*100)));
 }
 function makeBadgePill(badge, logCount){
-  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeMiniArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
+  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeCardArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
 }
 function makeVaultBadgeCard(badge, logCount){
   return '<div class="badge-card'+(badge.unlocked?'':' locked')+'"><div class="badge-card-art">'+badgeCardArt(badge)+'</div><div class="badge-card-copy"><div class="badge-card-track">'+esc(badge.track)+'</div><div class="badge-card-name">'+esc(badge.label)+'</div><div class="badge-card-desc">'+esc(badge.desc)+'</div><div class="badge-card-progress">'+esc(badgeProgressLine(badge,logCount))+'</div>'+(badge.key==='founder'?'':'<div class="badge-card-bar"><span style="width:'+badgeProgressPct(badge,logCount)+'%"></span></div>')+'</div></div>';
@@ -1453,7 +1448,7 @@ function renderJournal(){
     +(badgeStrip?'<div class="jbadge-strip">'+badgeStrip+'</div>':'')
     +(nextBadge?'<p class="jmast-sub" style="margin-top:-6px;margin-bottom:18px;color:rgba(244,231,192,.8)">Next unlock: '+esc(nextBadge.label)+' · '+esc(badgeProgressLine(nextBadge,vis))+'</p>':'')
     +'<div class="jstats">'
-      +'<div class="jstat"><div class="jstat-n">'+vis+'</div><div class="jstat-l">Visited</div></div>'
+      +'<div class="jstat"><div class="jstat-n">'+vis+'</div><div class="jstat-l">Falls Logged</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+Math.max(total-vis,0)+'</div><div class="jstat-l">Remaining</div></div>'
       +'<div class="jstat"><div class="jstat-n">'+total+'</div><div class="jstat-l">Total Falls</div></div>'
       +(avg>0?'<div class="jstat"><div class="jstat-n" style="color:var(--gold)">'+avg.toFixed(1)+'&#9733;</div><div class="jstat-l">Avg Rating</div></div>':'')
