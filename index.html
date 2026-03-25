@@ -384,7 +384,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   <div id="sidebar">
     <div class="sb-head">
       <div class="sb-eye">Land of a Thousand Waterfalls</div>
-      <div class="sb-title">Georgia Waterfalls</div>
+      <div class="sb-title">Waterfalls</div>
       <div class="prog-wrap"><div class="prog-fill" id="prog" style="width:0%"></div></div>
       <div class="prog-txt" id="prog-txt">Loading...</div>
       <div class="sb-tools">
@@ -395,7 +395,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
         </div>
         <button class="sb-help" id="btn-trail-guide">Trail Guide</button>
       </div>
-      <input class="sb-search" id="srch" type="text" placeholder="Search falls or region...">
+      <input class="sb-search" id="srch" type="text" placeholder="Search falls, region, or state...">
     </div>
     <div id="falls-list"></div>
   </div>
@@ -656,10 +656,14 @@ function normalizeFallRow(row){
   var lng=numOrNull(pickFirst(row,['lng','longitude','lon','long']));
   if(!name || lat===null || lng===null) return null;
   var id=slugify(pickFirst(row,['slug','waterfall_id','id'])||name);
+  var region=String(pickFirst(row,['region','county','location','area'])||'').trim();
+  var state=String(pickFirst(row,['state','state_code'])||'').trim();
+  var regionLabel=region || state || 'Waterfall Region';
   return {
     id:id||mkid(),
     name:String(name).trim(),
-    region:String(pickFirst(row,['region','county','location','area'])||'Georgia').trim(),
+    region:regionLabel,
+    state:state,
     lat:lat,
     lng:lng,
     height:formatFeet(pickFirst(row,['height','height_ft'])),
@@ -673,7 +677,7 @@ function normalizeFallRow(row){
 function mergeFalls(rows){
   var merged={}, order=[];
   FALLS_FALLBACK.forEach(function(f){
-    merged[f.id]=Object.assign({},f);
+    merged[f.id]=Object.assign({state:'GA'},f);
     order.push(f.id);
   });
   (rows||[]).forEach(function(row){
@@ -929,9 +933,17 @@ function renderList(){
   document.getElementById('prog-txt').textContent=vis+' of '+total+' visited';
   var el=document.getElementById('falls-list');el.innerHTML='';
   FALLS.filter(function(f){
+    var state=String(f.state||'').toLowerCase();
+    var haystack=[f.name,f.region,f.state].join(' ').toLowerCase();
     if(fMode==='visited'&&!isVis(f.id))return false;
     if(fMode==='unvisited'&&isVis(f.id))return false;
-    if(q&&!f.name.toLowerCase().includes(q)&&!f.region.toLowerCase().includes(q))return false;
+    if(q && !haystack.includes(q)){
+      if(!(q==='georgia' && state==='ga')) return false;
+      if(!(q==='north carolina' && state==='nc')) return false;
+      if(!(q==='south carolina' && state==='sc')) return false;
+      if(!(q==='tennessee' && state==='tn')) return false;
+      if(!(q==='alabama' && state==='al')) return false;
+    }
     return true;
   }).forEach(function(f){
     var v=isVis(f.id),log=getLog(f.id);
