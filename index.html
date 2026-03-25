@@ -41,13 +41,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .ntab:hover{color:rgba(255,255,255,.65);}
 .ntab.on{color:var(--cream);}
 .ntab.on::after{transform:scaleX(1);}
-#auth-area{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+#auth-area{display:flex;align-items:center;gap:7px;flex-shrink:0;justify-content:flex-end;}
 .btn-ghost{padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.6);font-family:"DM Sans",sans-serif;font-size:.65rem;cursor:pointer;transition:all .2s;border-radius:2px;}
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
 .btn-gold{padding:5px 13px;background:var(--gold);border:none;color:var(--bg);font-family:"DM Sans",sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .2s;border-radius:2px;}
 .btn-gold:hover{background:var(--amber);}
-.nav-user{display:flex;align-items:center;gap:8px;}
+.nav-user{display:flex;align-items:center;gap:8px;max-width:100%;}
 .nav-av{width:28px;height:28px;border-radius:50%;background:var(--sage);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--gold);}
+.auth-name{font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
 #app{flex:1;overflow:hidden;display:flex;min-height:0;}
 .page{display:none;flex:1;overflow:hidden;min-height:0;}
 .page.on{display:flex;}
@@ -270,6 +271,12 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 #photo-store{display:none;}
 @media(max-width:680px){
   body{overflow:auto;}
+  .topnav{flex-wrap:wrap;gap:10px 12px;align-items:center;}
+  .nav-tabs{order:3;width:100%;margin:0;justify-content:space-between;}
+  #auth-area{width:100%;order:2;justify-content:flex-end;}
+  .nav-user{width:100%;justify-content:flex-end;flex-wrap:wrap;row-gap:6px;}
+  .auth-name{max-width:40vw;margin-right:0;}
+  .btn-ghost,.btn-gold{min-height:34px;}
   #app{flex-direction:column;overflow:visible;min-height:auto;}
   .page{flex-direction:column!important;overflow:visible;min-height:auto;}
   #sidebar{width:100%;height:auto;max-height:46vh;}
@@ -277,6 +284,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .hero{min-height:80vh;padding:0 18px 56px;}
   .feats{grid-template-columns:1fr;}
   .land-cta,.jmast,.jentries,.ex-sec,.ex-grid{padding-left:16px;padding-right:16px;}
+  .jstats{flex-wrap:wrap;}
+  .jstat{max-width:none;min-width:calc(50% - 1px);}
   .ex-grid{grid-template-columns:1fr;}
   .ex-hero{height:240px;}
   #m-wf,#m-auth,#m-post{width:96vw;}
@@ -575,13 +584,32 @@ function dataUrlToBlob(dataUrl){
   return new Blob([arr],{type:mime});
 }
 function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
+function profileIsPro(profile){return !!(profile && (profile.is_pro===true || profile.plan==='pro'));}
+function upgradeToPro(){window.location.href="https://buy.stripe.com/4gMeVd9tAgHgdk5eX8a3u00";}
+function getActivityBadge(logCount){
+  if(logCount>=25) return {label:'Explorer',icon:'🔥'};
+  if(logCount>=10) return {label:'Waterfall Hunter',icon:'🌊'};
+  if(logCount>=5) return {label:'Trail Scout',icon:'🥾'};
+  if(logCount>=1) return {label:'First Drop',icon:'💧'};
+  return null;
+}
+function getFounderBadge(profile){
+  if(profile && (profile.founding_explorer===true || profile.is_founder===true || profile.founder===true)){
+    return {label:'Founding Explorer',icon:'⭐'};
+  }
+  return null;
+}
+function makeBadgeMarkup(badge, tone){
+  if(!badge) return '';
+  return '<span class="pbadge '+tone+'">'+esc(badge.icon+' '+badge.label)+'</span>';
+}
 
 async function ensureProfile(user){
   var nm=(user.user_metadata&&user.user_metadata.name)||user.email.split('@')[0];
-  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro').eq('id',user.id).maybeSingle();
+  var existing=await sb.from('profiles').select('id,name,email,plan,is_pro,current_period_end,subscription_status').eq('id',user.id).maybeSingle();
   if(existing.error && existing.error.code!=='PGRST116') throw existing.error;
   if(!existing.data){
-    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free',is_pro:false}).select('id,name,email,plan,is_pro').single();
+    var ins=await sb.from('profiles').insert({id:user.id,email:user.email,name:nm,plan:'free',is_pro:false}).select('id,name,email,plan,is_pro,current_period_end,subscription_status').single();
     if(ins.error) throw ins.error;
     return ins.data;
   }
@@ -597,17 +625,14 @@ async function hydrateSession(){
   var user=s.data&&s.data.session&&s.data.session.user;
   if(!user){ME=null;return;}
   var prof=await ensureProfile(user);
-  var isPro = !!(prof && prof.plan === 'pro');
-  try{
-    var proRes = await sb.from('profiles').select('is_pro').eq('id', user.id).maybeSingle();
-    if(!proRes.error && proRes.data){ isPro = !!proRes.data.is_pro; }
-  }catch(e){}
   ME={
     id:user.id,
     name:(prof&&prof.name)||user.email.split('@')[0],
     email:user.email,
     plan:(prof&&prof.plan)||'free',
-    is_pro:isPro
+    is_pro:profileIsPro(prof),
+    current_period_end:(prof&&prof.current_period_end)||null,
+    subscription_status:(prof&&prof.subscription_status)||null
   };
 }
 
@@ -655,7 +680,7 @@ async function refreshAllData(){
   var nameMap={};
   var uids=Array.from(new Set(rows.map(function(r){return r.user_id;}).filter(Boolean)));
   if(uids.length){
-    var nr=await sb.from('Profiles').select('id,name').in('id',uids);
+    var nr=await sb.from('profiles').select('id,name').in('id',uids);
     if(!nr.error){(nr.data||[]).forEach(function(n){nameMap[n.id]=n.name||'Hiker';});}
   }
   rows.forEach(function(r){
@@ -888,16 +913,34 @@ function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to browse your journal. Upgrade when you're ready to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to browse your journal. Upgrade when you&#39;re ready to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
     var jb=document.getElementById('jauth');if(jb)jb.addEventListener('click',openAuth);
+    return;
+  }
+  if(!ME.is_pro){
+    mast.innerHTML='';
+    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to unlock your private trail journal, saved logs, and badge progress.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
+    var ju=document.getElementById('jupgrade');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
   var logs=Object.entries((DB.users[ME.id]||{}).logs||{}).map(function(e){return{id:e[0],log:e[1]};}).sort(function(a,b){return b.log.ts-a.log.ts;});
   var total=FALLS.length,vis=logs.length,sum=0,cnt=0;
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
   var avg=cnt?sum/cnt:0;
-  
-mast.innerHTML=`<div class="jmast-eye">Personal Record</div><h1>${esc(ME.name)}'s Trail Journal</h1><p class="jmast-sub">Your waterfall adventure log</p><div class="jstats"><div class="jstat"><div class="jstat-n">${vis}</div><div class="jstat-l">Visited</div></div><div class="jstat"><div class="jstat-n">${total-vis}</div><div class="jstat-l">Remaining</div></div><div class="jstat"><div class="jstat-n">${Math.round(vis/total*100)}%</div><div class="jstat-l">Complete</div></div>${avg>0?`<div class="jstat"><div class="jstat-n" style="color:var(--gold)">${avg.toFixed(1)}&#9733;</div><div class="jstat-l">Avg Rating</div></div>`:''}</div>`;
+  var activityBadge=getActivityBadge(vis);
+  var founderBadge=getFounderBadge(ME);
+  var badgeMarkup=[makeBadgeMarkup(activityBadge,'priv'),makeBadgeMarkup(founderBadge,'pub')].filter(Boolean).join('');
+
+  mast.innerHTML='<div class="jmast-eye">Personal Record</div>'
+    +'<h1>'+esc(ME.name)+'&#39;s Trail Journal</h1>'
+    +'<p class="jmast-sub">Log each waterfall, choose what stays private, and share the stories you want the community to see.</p>'
+    +(badgeMarkup?'<div class="je-meta" style="margin-bottom:18px">'+badgeMarkup+'</div>':'')
+    +'<div class="jstats">'
+      +'<div class="jstat"><div class="jstat-n">'+vis+'</div><div class="jstat-l">Visited</div></div>'
+      +'<div class="jstat"><div class="jstat-n">'+Math.max(total-vis,0)+'</div><div class="jstat-l">Remaining</div></div>'
+      +'<div class="jstat"><div class="jstat-n">'+total+'</div><div class="jstat-l">Total Falls</div></div>'
+      +(avg>0?'<div class="jstat"><div class="jstat-n" style="color:var(--gold)">'+avg.toFixed(1)+'&#9733;</div><div class="jstat-l">Avg Rating</div></div>':'')
+    +'</div>';
   if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
   ent.innerHTML='';
   logs.forEach(function(e){
@@ -976,7 +1019,7 @@ function renderNav(){
       el.innerHTML =
         '<div class="nav-user">' +
           '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
-          '<span style="font-size:.66rem;color:rgba(255,255,255,.42);margin-right:6px">'+esc(ME.name||ME.email)+'</span>' +
+          '<span class="auth-name">'+esc(ME.name||ME.email)+'</span>' +
           '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
           (ME.is_pro ? '' : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
         '</div>';
@@ -1003,22 +1046,20 @@ function renderNav(){
     console.error('renderNav crashed:', e);
   }
 }
-}
 function showPage(nm){
-
-  // 🔒 LOCK JOURNAL FOR FREE USERS
   if(nm === 'journal' && (!ME || !ME.is_pro)){
     upgradeToPro();
-    return;
+    return false;
   }
 
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
   document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
   document.getElementById('pg-'+nm).classList.add('on');
   var tab=document.getElementById('t-'+nm);if(tab)tab.classList.add('on');
+  return true;
 }
 function goPage(nm){
-  showPage(nm);
+  if(showPage(nm)===false) return;
   if(nm==='map'){initMap();setTimeout(function(){if(MAP)MAP.invalidateSize();},60);renderList();}
   if(nm==='explore')renderExplore();
   if(nm==='journal')renderJournal();
@@ -1041,8 +1082,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(tj)tj.addEventListener('click',function(){goPage('journal');});
   // Landing buttons
   var bm=document.getElementById('btn-map'),ba=document.getElementById('btn-auth-land'),ba2=document.getElementById('btn-auth-land2');
-  const btnSignin = document.getElementById('btn-signin');
-if (btnSignin) btnSignin.addEventListener('click', openAuth);
   if(bm)bm.addEventListener('click',function(){goPage('map');});
   if(ba)ba.addEventListener('click',upgradeToPro);if(ba2)ba2.addEventListener('click',upgradeToPro);
   // Filter tabs
@@ -1088,15 +1127,20 @@ if (btnSignin) btnSignin.addEventListener('click', openAuth);
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
 
   sb.auth.onAuthStateChange(async function(event, session){
-  if(session && session.user){
-    await hydrateSession();
-    renderNav();
-    await refreshAllData();
-  } else if(event==='SIGNED_OUT'){
-    ME=null;DB={users:{},posts:{}};
-    renderNav();renderList();renderExplore();renderJournal();
-  }
-});
+    try{
+      if(session && session.user){
+        await hydrateSession();
+        renderNav();
+        await refreshAllData();
+      } else if(event==='SIGNED_OUT'){
+        ME=null;DB={users:{},posts:{}};
+        renderNav();renderList();renderExplore();renderJournal();
+      }
+    } catch(err){
+      console.error('auth state sync failed:', err);
+      renderNav();
+    }
+  });
 
 (async function(){
   try {
@@ -1138,67 +1182,6 @@ function loadPreloadedFalls(){
 document.addEventListener("DOMContentLoaded", loadPreloadedFalls);
 </script>
 
-
-<!-- PRO SYSTEM -->
-<script>
-// Fake user state (will connect to Supabase auth later)
-let currentUser = {
-  is_pro: false,
-  founder: false,
-  invite_code: null
-};
-
-// Invite code unlock
-function applyInviteCode(code){
-  if(code === "FOUNDERS40"){
-    currentUser.is_pro = true;
-    currentUser.founder = true;
-    alert("🌟 Founding Member Unlocked!");
-    updateUI();
-  } else {
-    alert("Invalid code");
-  }
-}
-
-// Upgrade button (replace with your Stripe link)
-function upgradeToPro(){
-  window.location.href = "https://buy.stripe.com/4gMeVd9tAgHgdk5eX8a3u00";
-}
-
-// Gate function
-function requirePro(action){
-  if(!currentUser.is_pro){
-    upgradeToPro();
-    return false;
-  }
-  return true;
-}
-
-// Log waterfall
-function logWaterfall(name){
-  if(!requirePro()) return;
-  alert("✅ Logged: " + name);
-}
-
-// Journal entry
-function addJournal(){
-  if(!requirePro()) return;
-  const entry = prompt("Write your memory:");
-  if(entry){
-    alert("Saved to your private journal 🌿");
-  }
-}
-
-// UI update
-function updateUI(){
-  const badge = document.getElementById("proBadge");
-  if(badge){
-    badge.innerText = currentUser.is_pro ? "🌿 Pro Member" : "Free Explorer";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", updateUI);
-</script>
 
 <footer style="
   margin-top:24px;
