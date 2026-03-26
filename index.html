@@ -868,7 +868,7 @@ function renderLandingCtas(){
   var trustFalls=document.getElementById('trust-falls');
   var trustStories=document.getElementById('trust-stories');
   if(trustFalls) trustFalls.textContent=String((FALLS||[]).length||0);
-  if(trustStories) trustStories.textContent=String((POSTS||[]).length||0);
+  if(trustStories) trustStories.textContent=String(Object.keys((DB&&DB.posts)||{}).length||0);
   if(btn1){
     btn1.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Remember Family Favorites • $3.99':'Sign In For Your Journal');
   }
@@ -895,7 +895,7 @@ function renderLandingCtas(){
       ctaCopy.textContent='Jump back into your journal, badge vault, saved waterfall plans, and favorite trails.';
     } else {
       ctaTitle.textContent='Never waste another waterfall day.';
-      ctaCopy.textContent='Explore for free, then unlock your private trail journal to remember favorites, skip the duds, and keep your next adventure easy.';
+      ctaCopy.textContent='Explore for free, then unlock your private trail journal to remember favorites, skip the duds, and keep your next adventure easy. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.';
     }
   }
 }
@@ -1477,7 +1477,7 @@ function openWF(id){
   if(!ME){
     gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Members Get More</div><h3>Keep this fall on your radar</h3><p>Browse the map and read stories freely. Sign in when you are ready to build your own waterfall record and start collecting trail memories.</p><div class="wf-gate-perks"><span>Save future falls</span><span>Build your explorer profile</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
   } else if(!isPaid){
-    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Explorer Journal</div><h3>Turn this hike into part of your story</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build a beautiful personal record of every waterfall you chase.</p><div class="wf-gate-perks"><span>Log every visit</span><span>Upload trail photos</span><span>Keep private notes</span><span>Build your badge journey</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
+    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Explorer Journal</div><h3>Turn this hike into part of your story</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build a beautiful personal record of every waterfall you chase. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><div class="wf-gate-perks"><span>Log every visit</span><span>Upload trail photos</span><span>Keep private notes</span><span>Build your badge journey</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
   } else {
     gate.innerHTML='';
   }
@@ -1643,7 +1643,7 @@ function renderJournal(){
   }
   if(!ME.is_pro){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to unlock your private trail journal, saved logs, and badge progress.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to unlock your private trail journal, saved logs, and badge progress. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
     var ju=document.getElementById('jupgrade');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
