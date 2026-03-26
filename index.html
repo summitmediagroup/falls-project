@@ -86,6 +86,19 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .feat-icon{font-size:1.7rem;margin-bottom:12px;}
 .feat-title{font-family:"Cormorant",serif;font-size:1.15rem;color:var(--cream);margin-bottom:7px;}
 .feat-desc{font-size:.76rem;color:rgba(255,255,255,.36);line-height:1.7;}
+.about-band{padding:34px 40px 36px;border-top:1px solid rgba(255,255,255,.05);background:radial-gradient(circle at top left,rgba(200,150,60,.08),transparent 34%),linear-gradient(180deg,rgba(16,26,20,.98),rgba(10,17,13,1));}
+.about-wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:22px;align-items:start;}
+.about-card{padding:22px 22px 20px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(200,150,60,.1);}
+.about-eye{font-family:"Cormorant",serif;font-size:.56rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:7px;}
+.about-title{font-family:"Cormorant",serif;font-size:1.75rem;font-weight:300;line-height:1.12;color:var(--cream);margin-bottom:10px;}
+.about-title em{font-style:italic;color:var(--gold);}
+.about-copy{font-size:.8rem;line-height:1.9;color:rgba(255,255,255,.54);}
+.about-copy strong{color:var(--cream);font-weight:600;}
+.about-copy p+p{margin-top:12px;}
+.about-quote{padding:22px;background:linear-gradient(180deg,rgba(200,150,60,.08),rgba(200,150,60,.03));border:1px solid rgba(200,150,60,.16);}
+.about-quote-mark{font-family:"Cormorant",serif;font-size:2rem;line-height:1;color:var(--gold);margin-bottom:8px;}
+.about-quote-text{font-family:"Cormorant",serif;font-size:1.2rem;line-height:1.45;color:var(--cream);}
+.about-quote-note{margin-top:12px;font-size:.72rem;line-height:1.7;color:rgba(255,255,255,.42);}
 .land-cta{padding:56px 40px;text-align:center;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;}
 .land-cta h2{font-family:"Cormorant",serif;font-size:1.9rem;font-weight:300;color:var(--cream);margin-bottom:8px;}
 .land-cta p{font-size:.8rem;color:rgba(255,255,255,.32);margin-bottom:22px;}
@@ -391,6 +404,12 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .home-tip{padding-right:40px;}
   .feats-head{padding:22px 16px 14px;}
   .feats{grid-template-columns:1fr;}
+  .about-band{padding:22px 16px 24px;}
+  .about-wrap{grid-template-columns:1fr;gap:12px;}
+  .about-card,.about-quote{padding:18px 16px;}
+  .about-title{font-size:1.42rem;}
+  .about-copy{font-size:.77rem;line-height:1.8;}
+  .about-quote-text{font-size:1.08rem;}
   .land-cta,.jmast,.jentries,.ex-sec,.ex-grid{padding-left:16px;padding-right:16px;}
   .jbadge-vault{grid-template-columns:1fr;}
   .badge-card{padding:11px;}
@@ -474,6 +493,24 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#128506;</div><div class="feat-title">Interactive Map</div><p class="feat-desc">Browse waterfalls by region, state, distance, trail details, and directions so you can find the right outing before you ever leave home.</p></div>
     <div class="feat"><div class="feat-tag paid">Paid Members</div><div class="feat-icon">&#128211;</div><div class="feat-title">Family Trail Journal</div><p class="feat-desc">Keep your own waterfall record with notes, photos, ratings, and memories, so you remember which trails became family favorites and which ones were not worth another Sunday.</p></div>
     <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#127754;</div><div class="feat-title">Explorer Stories</div><p class="feat-desc">Read real trail stories, honest conditions, and lived experience from other explorers before you choose your next adventure.</p></div>
+  </div>
+  <div class="about-band">
+    <div class="about-wrap">
+      <div class="about-card">
+        <div class="about-eye">Why It Exists</div>
+        <div class="about-title">Built for busy families, waterfall chasers, and anyone who wants adventure without the <em>mental clutter.</em></div>
+        <div class="about-copy">
+          <p>The Falls Project started with a simple family problem: <strong>too many moving parts, too many memories to keep straight, and no easy way to remember which waterfalls were worth going back to.</strong> Between children, pets, work, and the thousand things life asks of a full household, the dream was never to create one more thing to manage. It was to create one place that managed it for you.</p>
+          <p>After one too many wasted Sundays, including a last-minute waterfall trip that turned out to be a trail the family had already tried and hated, this became more than an idea. It became the answer to a real need: <strong>a beautiful, simple place to keep track of where you have been, what you loved, and what should come next.</strong></p>
+          <p>This was built for everyone. Families with toddlers. Beginners who do not want to guess wrong. Women looking for inspiring places to explore. Memory keepers. Hidden-falls hunters. People with limited bandwidth, limited time, or limited mobility who still deserve beauty, nature, and adventure.</p>
+        </div>
+      </div>
+      <div class="about-quote">
+        <div class="about-quote-mark">"</div>
+        <div class="about-quote-text">Waterfalls are not just for the ultra-athletic. Nature was made for everyone to enjoy, and there is beauty out there for you too.</div>
+        <div class="about-quote-note">That is the heart of The Falls Project: helping people find the falls that fit their life, their family, and the kind of day they actually want to have.</div>
+      </div>
+    </div>
   </div>
   <div class="land-cta">
     <h2>Track every waterfall. Discover what’s next.</h2>
