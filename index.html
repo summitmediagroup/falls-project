@@ -500,7 +500,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <p class="hero-sub" id="hero-sub">Find the right waterfall before you head out, remember the trails you loved, and avoid wasting another Sunday on the wrong hike.</p>
       <div class="hero-ctas">
         <button class="cta-p" id="btn-map">Explore the Map</button>
-        <button class="cta-s" id="btn-auth-land">Remember Family Favorites • $3.99</button>
+        <button class="cta-s" id="btn-auth-land">Keep Track of Your Favorite Trails • $3.99</button>
       </div>
       <div class="trust-strip">
         <div class="trust-pill"><span class="trust-num" id="trust-falls">122</span> waterfalls mapped</div>
@@ -552,7 +552,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   <div class="land-cta">
     <h2>Never waste another waterfall day.</h2>
     <p>Explore for free, then unlock your private trail journal to remember favorites, skip the duds, and keep your next adventure easy.</p>
-    <button class="cta-p" id="btn-auth-land2">Remember Family Favorites • $3.99</button>
+    <button class="cta-p" id="btn-auth-land2">Keep Track of Your Favorite Trails • $3.99</button>
   </div>
 </div>
 <div id="pg-map" class="page">
@@ -870,10 +870,10 @@ function renderLandingCtas(){
   if(trustFalls) trustFalls.textContent=String((FALLS||[]).length||0);
   if(trustStories) trustStories.textContent=String(Object.keys((DB&&DB.posts)||{}).length||0);
   if(btn1){
-    btn1.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Remember Family Favorites • $3.99':'Sign In For Your Journal');
+    btn1.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Keep Track of Your Favorite Trails • $3.99':'Sign In For Your Journal');
   }
   if(btn2){
-    btn2.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Remember Family Favorites • $3.99':'Sign In For Your Journal');
+    btn2.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Keep Track of Your Favorite Trails • $3.99':'Sign In For Your Journal');
     btn2.style.display=(ME&&ME.is_pro)?'inline-block':'inline-block';
   }
   if(heroSub){
