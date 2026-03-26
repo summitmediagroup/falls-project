@@ -329,6 +329,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wf-stories{background:linear-gradient(180deg,rgba(40,61,46,.38),rgba(18,31,24,.82));border:1px solid rgba(157,185,132,.18);padding:14px 14px 10px;margin:18px 0 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
 .wf-stories .sec-hd{font-size:.62rem;letter-spacing:.22em;color:#d2b678;border-bottom-color:rgba(210,182,120,.24);margin-bottom:12px;}
 .wf-stories-empty{font-size:.76rem;line-height:1.7;color:rgba(244,240,230,.72);margin-bottom:8px;}
+.wf-visit-stack{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.wf-visit-chip{appearance:none;border:1px solid rgba(200,150,60,.18);background:rgba(255,255,255,.03);color:rgba(255,255,255,.82);padding:9px 11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:inherit;cursor:pointer;transition:border-color .18s ease,transform .18s ease,background .18s ease;}
+.wf-visit-chip span{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,231,192,.78);}
+.wf-visit-chip strong{font-size:.72rem;font-weight:600;color:var(--cream);}
+.wf-visit-chip em{font-style:normal;font-size:.7rem;color:var(--gold);}
+.wf-visit-chip.on,.wf-visit-chip:hover{border-color:rgba(200,150,60,.4);background:rgba(200,150,60,.08);transform:translateY(-1px);}
+.wf-visit-more{font-size:.68rem;color:rgba(255,255,255,.48);padding:8px 2px 0;}
+.wf-visit-note{font-size:.73rem;line-height:1.65;color:rgba(245,241,233,.7);margin:-2px 0 12px;}
 .mpost{background:rgba(255,255,255,.06);border:1px solid rgba(199,214,182,.16);padding:12px 13px;margin-bottom:9px;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;box-shadow:0 12px 24px rgba(0,0,0,.12);}
 .mpost:hover{transform:translateY(-1px);border-color:rgba(210,182,120,.34);background:rgba(255,255,255,.08);}
 .mpost-hd{display:flex;justify-content:space-between;margin-bottom:4px;}
@@ -808,14 +816,27 @@ var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
 var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbWVsaGRseXloYmticmR6cnRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODE4NTMsImV4cCI6MjA4OTc1Nzg1M30.GK9TQ06Mbbj1LMQHr7WKwcfVmGiLgf5eFc6Zak9gZkQ";
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-var DB={users:{},posts:{}},ME=null,wfId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
+var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
 var SAVED_KEY='falls_saved_to_visit_v1';
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-function isVis(id){return !!(ME&&DB.users[ME.id]&&DB.users[ME.id].logs&&DB.users[ME.id].logs[id]);}
-function getLog(id){return ME?((DB.users[ME.id]||{}).logs||{})[id]||null:null;}
+function getLogs(id){
+  return ME?(((DB.users[ME.id]||{}).logs||{})[id]||[]):[];
+}
+function isVis(id){return !!getLogs(id).length;}
+function getLog(id){
+  var logs=getLogs(id);
+  return logs.length?logs[0]:null;
+}
+function getLogByRowId(id,rowId){
+  var logs=getLogs(id);
+  for(var i=0;i<logs.length;i++){
+    if(logs[i] && logs[i].rowId===rowId) return logs[i];
+  }
+  return null;
+}
 function getSavedFalls(){
   try{
     var raw=localStorage.getItem(SAVED_KEY);
@@ -1259,7 +1280,10 @@ async function refreshAllData(){
   rows.forEach(function(r){
     var f=FALLS.find(function(x){return x.id===r.waterfall_id;});
     var log=rowToLog(r,photos);
-    if(ME && r.user_id===ME.id){ DB.users[ME.id].logs[r.waterfall_id]=log; }
+    if(ME && r.user_id===ME.id){
+      if(!DB.users[ME.id].logs[r.waterfall_id]) DB.users[ME.id].logs[r.waterfall_id]=[];
+      DB.users[ME.id].logs[r.waterfall_id].push(log);
+    }
     if(r.visibility==='public'){
       DB.posts[r.id]={
         id:r.id,userId:r.user_id,fallId:r.waterfall_id,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
@@ -1418,10 +1442,13 @@ function buildWaterfallOverview(f){
   };
 }
 
-function openWF(id){
+function openWF(id,rowId){
   wfId=id;
+  editingLogRowId=rowId||null;
   var f=FALLS.find(function(x){return x.id===id;});if(!f)return;
-  var log=getLog(id);
+  var logs=getLogs(id);
+  var latestLog=logs[0]||null;
+  var log=editingLogRowId?getLogByRowId(id,editingLogRowId):null;
   var isPaid=!!(ME&&ME.is_pro);
   var overview=buildWaterfallOverview(f);
   pPh=log&&log.photos?log.photos.slice():[];
@@ -1461,10 +1488,30 @@ function openWF(id){
   }
   var xe=document.getElementById('wf-exlog');
   var gate=document.getElementById('wf-gate');
+  if(logs.length){
+    var historyHtml='<div class="sec-hd">Previous Visits</div><div class="wf-visit-stack">';
+    logs.slice(0,4).forEach(function(entry){
+      var entryStars=entry.rating?'&#9733;'.repeat(entry.rating):'';
+      var isActive=editingLogRowId && entry.rowId===editingLogRowId;
+      historyHtml+='<button type="button" class="wf-visit-chip'+(isActive?' on':'')+'" data-rowid="'+esc(entry.rowId)+'"><span>'+(entry.date?esc(entry.date):'Undated visit')+'</span>'+(entry.duration?'<strong>'+esc(entry.duration)+'</strong>':'')+(entryStars?'<em>'+entryStars+'</em>':'')+'</button>';
+    });
+    if(logs.length>4){
+      historyHtml+='<div class="wf-visit-more">+'+esc(logs.length-4)+' more visit'+(logs.length-4===1?'':'s')+' in your journal</div>';
+    }
+    historyHtml+='</div>';
+    xe.innerHTML=historyHtml;
+    xe.querySelectorAll('.wf-visit-chip').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        openWF(id,btn.getAttribute('data-rowid'));
+      });
+    });
+  } else {
+    xe.innerHTML='';
+  }
   if(log){
     var st=log.rating?'&#9733;'.repeat(log.rating):'';
-    xe.innerHTML='<div class="sec-hd">Your Visit Log</div><div class="exlog"><div class="exlog-meta">'+esc(log.date||'Date unknown')+(log.duration?' &middot; '+esc(log.duration):'')+' '+st+'</div>'+(log.loved?'<div class="exlog-txt"><b style="opacity:.5">Loved:</b> '+esc(log.loved)+'</div>':'')+(log.tips?'<div class="exlog-txt"><b style="opacity:.5">Tips:</b> '+esc(log.tips)+'</div>':'')+'</div>';
-    document.getElementById('wf-form-hd').textContent='Your Trail Journal';
+    xe.innerHTML+='<div class="exlog"><div class="exlog-meta">'+esc(log.date||'Date unknown')+(log.duration?' &middot; '+esc(log.duration):'')+' '+st+'</div>'+(log.loved?'<div class="exlog-txt"><b style="opacity:.5">Loved:</b> '+esc(log.loved)+'</div>':'')+(log.tips?'<div class="exlog-txt"><b style="opacity:.5">Tips:</b> '+esc(log.tips)+'</div>':'')+'</div>';
+    document.getElementById('wf-form-hd').textContent='Edit This Visit';
     document.getElementById('del-btn').style.display='block';
     document.getElementById('f-date').value=log.date||'';
     document.getElementById('f-dur').value=log.duration||'';
@@ -1474,12 +1521,14 @@ function openWF(id){
     document.getElementById('f-imp').value=log.improve||'';
     document.getElementById('f-tips').value=log.tips||'';
   } else {
-    xe.innerHTML='';
-    document.getElementById('wf-form-hd').textContent='Start Your Trail Journal';
+    document.getElementById('wf-form-hd').textContent=logs.length?'Log Another Visit':'Start Your Trail Journal';
     document.getElementById('del-btn').style.display='none';
     document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
     ['f-dur','f-loved','f-imp','f-tips'].forEach(function(x){document.getElementById(x).value='';});
     document.getElementById('f-cond').value='';document.getElementById('f-wat').value='';
+  }
+  if(!log && latestLog && logs.length){
+    xe.innerHTML+='<div class="wf-visit-note">You have logged this waterfall before. This form will save a brand new visit so you can keep seasonal memories, trail changes, and fresh photos.</div>';
   }
   renderStars();renderPriv();renderPrev();
   if(!ME){
@@ -1539,7 +1588,7 @@ async function saveLog(){
   try{
     if(!ME){openAuth();return;}
     var btn=document.getElementById('btn-save-log'); if(btn){btn.disabled=true;btn.textContent='Saving...';}
-    var ex=getLog(wfId);
+    var ex=editingLogRowId?getLogByRowId(wfId,editingLogRowId):null;
     var isUpdate=!!(ex&&ex.rowId);
     var f=FALLS.find(function(x){return x.id===wfId;});
     var payload={
@@ -1569,7 +1618,8 @@ async function saveLog(){
     await uploadPhotosForLog(rowId);
     await refreshAllData();
     closeOv('ov-wf');
-    toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added to your trail journal: '+(f?f.name:'this waterfall'));
+    editingLogRowId=null;
+    toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added a new visit to your trail journal: '+(f?f.name:'this waterfall'));
   } catch(err){
     console.error(err);
     toast(err && err.message ? err.message : 'Could not save your journal entry');
@@ -1581,11 +1631,13 @@ async function saveLog(){
 async function delLog(){
   try{
     if(!ME)return;
-    var ex=getLog(wfId); if(!ex||!ex.rowId){closeOv('ov-wf');return;}
+    var ex=editingLogRowId?getLogByRowId(wfId,editingLogRowId):null;
+    if(!ex||!ex.rowId){closeOv('ov-wf');return;}
     await sb.from('waterfall_photos').delete().eq('log_id',ex.rowId).eq('user_id',ME.id);
     var dl=await sb.from('waterfall_logs').delete().eq('id',ex.rowId).eq('user_id',ME.id);
     if(dl.error) throw dl.error;
     await refreshAllData();
+    editingLogRowId=null;
     closeOv('ov-wf');
     toast('Visit removed');
   } catch(err){
@@ -1655,8 +1707,15 @@ function renderJournal(){
     var ju=document.getElementById('jupgrade');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
-  var logs=Object.entries((DB.users[ME.id]||{}).logs||{}).map(function(e){return{id:e[0],log:e[1]};}).sort(function(a,b){return b.log.ts-a.log.ts;});
-  var total=FALLS.length,vis=logs.length,sum=0,cnt=0;
+  var userLogs=(DB.users[ME.id]||{}).logs||{};
+  var logs=Object.entries(userLogs).reduce(function(acc,e){
+    (e[1]||[]).forEach(function(log){
+      acc.push({id:e[0],log:log});
+    });
+    return acc;
+  },[]).sort(function(a,b){return b.log.ts-a.log.ts;});
+  var distinctFalls=Object.keys(userLogs).filter(function(key){return (userLogs[key]||[]).length;}).length;
+  var total=FALLS.length,vis=distinctFalls,sum=0,cnt=0;
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
   var avg=cnt?sum/cnt:0;
   var badgeVault=getBadgeVault(vis,ME.is_founding_explorer);
@@ -1696,7 +1755,7 @@ function renderJournal(){
     var exc=e.log.loved||e.log.tips||e.log.improve||'';
     var d=document.createElement('div');d.className='je';
     d.innerHTML='<div class="je-img"><img src="'+esc(hero)+'" alt=""></div><div class="je-body"><div class="je-eye">'+esc(f.region)+'</div><div class="je-name">'+esc(f.name)+'</div>'+(exc?'<div class="je-exc">'+esc(exc.slice(0,120))+'</div>':'')+'<div class="je-meta">'+(e.log.date?'<span>'+esc(e.log.date)+'</span>':'')+(e.log.duration?'<span>&middot; '+esc(e.log.duration)+'</span>':'')+(e.log.rating?'<span>&middot; '+'&#9733;'.repeat(e.log.rating)+'</span>':'')+'<span class="pbadge '+(e.log.privacy==='public'?'pub':'priv')+'">'+(e.log.privacy==='public'?'Public':'Private')+'</span></div></div>';
-    d.addEventListener('click',function(){openWF(e.id);});
+    d.addEventListener('click',function(){openWF(e.id,e.log.rowId);});
     ent.appendChild(d);
   });
 }
