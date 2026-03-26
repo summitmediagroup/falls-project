@@ -177,6 +177,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .chip.s{border-color:rgba(200,150,60,.35);color:var(--gold);}
 .fi-date{font-size:.57rem;color:var(--gold);margin-top:3px;}
 .fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;}
+.fi video.fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;background:#08100b;}
 .fi-tick{position:absolute;top:7px;right:7px;width:14px;height:14px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--bg);opacity:0;transition:opacity .2s;}
 .fi.done .fi-tick{opacity:1;}
 #map-el{flex:1;z-index:1;position:relative;background:linear-gradient(180deg,rgba(111,140,120,.16),rgba(12,20,16,.06));}
@@ -213,6 +214,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .pcard:hover{transform:scale(1.015);z-index:2;}
 .pcard-img{height:185px;overflow:hidden;position:relative;background:var(--raised);}
 .pcard-img img{width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.8);}
+.pcard-img video{width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.8);background:#08100b;}
 .pcard-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;opacity:.25;}
 .pcard-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,20,16,.8) 0%,transparent 55%);}
 .pcard-stars{position:absolute;top:10px;right:10px;background:rgba(12,20,16,.7);padding:3px 8px;font-size:.64rem;color:var(--gold);border:1px solid rgba(200,150,60,.25);}
@@ -291,6 +293,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .je:hover::before{opacity:1;}
 .je-img{width:96px;flex-shrink:0;overflow:hidden;background:var(--raised);}
 .je-img img{width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.75);}
+.je-img video{width:100%;height:100%;object-fit:cover;filter:brightness(.8) saturate(.75);background:#08100b;}
 .je-body{padding:13px 15px;flex:1;min-width:0;}
 .je-eye{font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
 .je-name{font-family:"Cormorant",serif;font-size:1rem;font-weight:300;color:var(--cream);margin-bottom:5px;}
@@ -381,6 +384,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .prev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px;margin-top:6px;}
 .prev-item{position:relative;aspect-ratio:1;overflow:hidden;border-radius:2px;}
 .prev-item img{width:100%;height:100%;object-fit:cover;}
+.prev-item video{width:100%;height:100%;object-fit:cover;background:#08100b;}
 .prm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:15px;height:15px;font-size:9px;cursor:pointer;border-radius:2px;}
 .priv-row{display:flex;gap:7px;}
 .ptog{flex:1;padding:8px;border:1px solid rgba(255,255,255,.09);background:transparent;color:rgba(255,255,255,.28);font-family:"DM Sans",sans-serif;font-size:.67rem;cursor:pointer;transition:all .2s;text-align:center;border-radius:2px;}
@@ -409,6 +413,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-hero{height:240px;position:relative;overflow:hidden;background:var(--raised);}
 .post-hero-bg{position:absolute;inset:0;display:flex;}
 .post-hero-bg img{flex:1;object-fit:cover;min-width:0;filter:brightness(.62) saturate(.75);}
+.post-hero-bg video{flex:1;object-fit:cover;min-width:0;filter:brightness(.62) saturate(.75);}
 .post-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,20,16,1) 0%,rgba(12,20,16,.3) 55%,transparent 100%);}
 .post-hero-info{position:absolute;bottom:18px;left:22px;right:56px;}
 .ph-wf{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
@@ -428,6 +433,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-story-intro{font-size:.78rem;line-height:1.72;color:rgba(244,240,231,.74);margin:0 0 14px;}
 .post-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:3px;margin-bottom:14px;}
 .post-gal img{width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;filter:brightness(.8) saturate(.8);}
+.post-gal video{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#08100b;}
 .post-cta{display:flex;gap:7px;}
 .btn-out{padding:9px 15px;background:transparent;color:var(--gold);border:1px solid rgba(200,150,60,.35);font-family:"DM Sans",sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
 #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:5000;align-items:center;justify-content:center;cursor:zoom-out;}
@@ -664,9 +670,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="fg"><label>What You Loved</label><textarea id="f-loved" placeholder="The mist, the solitude, the swimming hole..."></textarea></div>
       <div class="fg"><label>Could Be Better</label><textarea id="f-imp" placeholder="Parking, crowds, trail erosion..." style="min-height:54px"></textarea></div>
       <div class="fg"><label>Tips for Future Hikers</label><textarea id="f-tips" placeholder="Best season, gear, hidden spots..." style="min-height:54px"></textarea></div>
-      <div class="fg"><label>Photos</label>
-        <div class="photo-zone"><input type="file" id="photo-inp" accept="image/*" multiple>
-          <p>&#128247; Tap to add your trip photos</p>
+      <div class="fg"><label>Photos &amp; Video</label>
+        <div class="photo-zone"><input type="file" id="photo-inp" accept="image/*,video/*" multiple>
+          <p>&#128247; Tap to add photos or short trail clips</p>
         </div>
         <div class="prev-grid" id="prev-grid"></div>
       </div>
@@ -1054,6 +1060,16 @@ function dataUrlToBlob(dataUrl){
   for(var i=0;i<len;i++)arr[i]=bin.charCodeAt(i);
   return new Blob([arr],{type:mime});
 }
+function mediaIsVideo(src){
+  var s=String(src||'').toLowerCase();
+  return /^data:video\//.test(s) || /\.(mp4|mov|m4v|webm|ogg)(\?|#|$)/.test(s);
+}
+function mediaThumbMarkup(src, alt, cls){
+  if(mediaIsVideo(src)){
+    return '<video class="'+esc(cls||'')+'" src="'+esc(src)+'" muted playsinline preload="metadata"></video>';
+  }
+  return '<img class="'+esc(cls||'')+'" src="'+esc(src)+'" alt="'+esc(alt||'')+'">';
+}
 function esc(s){return String(s||"").replace(/[&<>\"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
 function profileIsPro(profile){
   if(!profile) return false;
@@ -1413,7 +1429,7 @@ function renderList(){
     var v=isVis(f.id),log=getLog(f.id);
     var saved=isSaved(f.id);
     var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
-    var thumb=log&&log.photos&&log.photos[0]?'<img class="fi-thumb" src="'+esc(log.photos[0])+'">':'<img class="fi-thumb" src="'+heroFor(f.id)+'" style="opacity:.3">';
+    var thumb=log&&log.photos&&log.photos[0]?mediaThumbMarkup(log.photos[0],'','fi-thumb'):'<img class="fi-thumb" src="'+heroFor(f.id)+'" style="opacity:.3">';
     var near=USER_POS?'<span class="chip">'+esc(milesBetween(USER_POS.lat,USER_POS.lng,f.lat,f.lng).toFixed(0)+' mi away')+'</span>':'';
     var d=document.createElement('div');d.className='fi'+(v?' done':'');
     d.innerHTML='<div class="fi-body"><div class="fi-name">'+esc(f.name)+'</div><div class="fi-reg">'+esc(f.region)+'</div>'
@@ -1570,11 +1586,11 @@ function renderPriv(){
 
 async function uploadPhotosForLog(logId){
   var keepUrls=[], newData=[];
-  (pPh||[]).forEach(function(p){ if(/^data:image\//.test(p)) newData.push(p); else keepUrls.push(p); });
+  (pPh||[]).forEach(function(p){ if(/^data:(image|video)\//.test(p)) newData.push(p); else keepUrls.push(p); });
   var uploaded=[];
   for(var i=0;i<newData.length;i++){
     var blob=dataUrlToBlob(newData[i]);
-    var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
+    var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('quicktime','mov');
     var filePath=ME.id+'/'+logId+'/'+Date.now()+'_'+i+'.'+ext;
     var up=await sb.storage.from('waterfall-photos').upload(filePath, blob, {upsert:true, contentType:blob.type});
     if(up.error) throw up.error;
@@ -1667,7 +1683,7 @@ function renderExplore(){
     var stars=p.rating?'&#9733;'.repeat(p.rating):'';
     var base=(p.loved||p.tips||p.improve||'An adventure in the Georgia mountains');
     var exc=esc(base.length>100?base.slice(0,100)+'...':base);
-    return '<div class="pcard" data-pid="'+p.id+'"><div class="pcard-img">'+(hero?'<img src="'+esc(hero)+'" alt="">':'<div class="pcard-ph">&#128167;</div>')+'<div class="pcard-overlay"></div>'+(p.rating?'<div class="pcard-stars">'+stars+'</div>':'')+'</div><div class="pcard-body"><div class="pcard-wf">'+esc((p.fallRegion||'')+' · '+(p.date||''))+'</div><div class="pcard-title">'+esc(p.fallName||'Waterfall Visit')+'</div><div class="pcard-exc">'+exc+'</div><div class="pcard-foot"><div class="pcard-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><span>'+esc(p.authorName||'Hiker')+'</span>'+founderMarkMarkup(p.isFounder)+(p.duration?'<span>&middot; '+esc(p.duration)+'</span>':'')+'</div></div></div>';
+    return '<div class="pcard" data-pid="'+p.id+'"><div class="pcard-img">'+(hero?mediaThumbMarkup(hero,'',''):'<div class="pcard-ph">&#128167;</div>')+'<div class="pcard-overlay"></div>'+(p.rating?'<div class="pcard-stars">'+stars+'</div>':'')+'</div><div class="pcard-body"><div class="pcard-wf">'+esc((p.fallRegion||'')+' · '+(p.date||''))+'</div><div class="pcard-title">'+esc(p.fallName||'Waterfall Visit')+'</div><div class="pcard-exc">'+exc+'</div><div class="pcard-foot"><div class="pcard-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><span>'+esc(p.authorName||'Hiker')+'</span>'+founderMarkMarkup(p.isFounder)+(p.duration?'<span>&middot; '+esc(p.duration)+'</span>':'')+'</div></div></div>';
   }).join('');
 }
 
@@ -1676,7 +1692,7 @@ function openPost(pid){
   document.getElementById('ph-wf').textContent=p.fallRegion||'Georgia';
   document.getElementById('ph-title').textContent=p.fallName||'Waterfall Visit';
   var hbg=document.getElementById('post-bg');
-  hbg.innerHTML=p.photos&&p.photos.length?p.photos.slice(0,3).map(function(x){return '<img src="'+esc(x)+'" alt="">';}).join(''):'<img src="'+heroFor(p.fallId||'')+'" alt="" style="width:100%;height:100%;object-fit:cover">';
+  hbg.innerHTML=p.photos&&p.photos.length?p.photos.slice(0,3).map(function(x){return mediaIsVideo(x)?'<video src="'+esc(x)+'" muted playsinline autoplay loop preload="metadata"></video>':'<img src="'+esc(x)+'" alt="">';}).join(''):'<img src="'+heroFor(p.fallId||'')+'" alt="" style="width:100%;height:100%;object-fit:cover">';
   var stats=[
     p.rating?'<div class="pstat"><div class="pstat-v" style="color:var(--gold)">'+'&#9733;'.repeat(p.rating)+'</div><div class="pstat-k">Rating</div></div>':'',
     p.duration?'<div class="pstat"><div class="pstat-v">'+esc(p.duration)+'</div><div class="pstat-k">Duration</div></div>':'',
@@ -1689,7 +1705,7 @@ function openPost(pid){
   if(p.loved) sections+='<div class="post-sec"><div class="post-sec-lbl">What They Loved</div><div class="post-sec-txt">'+esc(p.loved)+'</div></div>';
   if(p.improve) sections+='<div class="post-sec"><div class="post-sec-lbl">Could Be Better</div><div class="post-sec-txt">'+esc(p.improve)+'</div></div>';
   if(p.tips) sections+='<div class="post-sec"><div class="post-sec-lbl">Tips for Future Explorers</div><div class="post-sec-txt">'+esc(p.tips)+'</div></div>';
-  var gallery=p.photos&&p.photos.length?'<div class="post-sec"><div class="post-sec-lbl">Trail Photos</div><div class="post-gal">'+p.photos.map(function(x,i){return '<img src="'+esc(x)+'" alt="Trail photo '+(i+1)+'" data-lb="'+esc(x)+'">';}).join('')+'</div></div>':'';
+  var gallery=p.photos&&p.photos.length?'<div class="post-sec"><div class="post-sec-lbl">Trail Media</div><div class="post-gal">'+p.photos.map(function(x,i){return mediaIsVideo(x)?'<video src="'+esc(x)+'" controls playsinline preload="metadata"></video>':'<img src="'+esc(x)+'" alt="Trail photo '+(i+1)+'" data-lb="'+esc(x)+'">';}).join('')+'</div></div>':'';
   document.getElementById('post-bd').innerHTML=
     '<div class="post-abar"><div class="post-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc(p.authorName||'Hiker')+founderMarkMarkup(p.isFounder)+'</div><div class="post-adt">'+esc((p.date||'')+(p.condition?' · '+p.condition:''))+'</div></div></div>'
     +(stats?'<div class="post-stats">'+stats+'</div>':'')
@@ -1761,7 +1777,7 @@ function renderJournal(){
     var hero=e.log.photos&&e.log.photos[0]?e.log.photos[0]:heroFor(e.id);
     var exc=e.log.loved||e.log.tips||e.log.improve||'';
     var d=document.createElement('div');d.className='je';
-    d.innerHTML='<div class="je-img"><img src="'+esc(hero)+'" alt=""></div><div class="je-body"><div class="je-eye">'+esc(f.region)+'</div><div class="je-name">'+esc(f.name)+'</div>'+(exc?'<div class="je-exc">'+esc(exc.slice(0,120))+'</div>':'')+'<div class="je-meta">'+(e.log.date?'<span>'+esc(e.log.date)+'</span>':'')+(e.log.duration?'<span>&middot; '+esc(e.log.duration)+'</span>':'')+(e.log.rating?'<span>&middot; '+'&#9733;'.repeat(e.log.rating)+'</span>':'')+'<span class="pbadge '+(e.log.privacy==='public'?'pub':'priv')+'">'+(e.log.privacy==='public'?'Public':'Private')+'</span></div></div>';
+    d.innerHTML='<div class="je-img">'+mediaThumbMarkup(hero,'','')+'</div><div class="je-body"><div class="je-eye">'+esc(f.region)+'</div><div class="je-name">'+esc(f.name)+'</div>'+(exc?'<div class="je-exc">'+esc(exc.slice(0,120))+'</div>':'')+'<div class="je-meta">'+(e.log.date?'<span>'+esc(e.log.date)+'</span>':'')+(e.log.duration?'<span>&middot; '+esc(e.log.duration)+'</span>':'')+(e.log.rating?'<span>&middot; '+'&#9733;'.repeat(e.log.rating)+'</span>':'')+'<span class="pbadge '+(e.log.privacy==='public'?'pub':'priv')+'">'+(e.log.privacy==='public'?'Public':'Private')+'</span></div></div>';
     d.addEventListener('click',function(){openWF(e.id,e.log.rowId);});
     ent.appendChild(d);
   });
@@ -1887,7 +1903,7 @@ function closeOv(id){document.getElementById(id).classList.remove('open');}
 function showLb(src){document.getElementById('lb-img').src=src;document.getElementById('lb').classList.add('open');}
 var _t;
 function toast(msg){if(_t)_t.remove();_t=document.createElement('div');_t.className='toast';_t.textContent=msg;document.body.appendChild(_t);setTimeout(function(){if(_t){_t.remove();_t=null;}},3000);}
-function renderPrev(){document.getElementById('prev-grid').innerHTML=pPh.map(function(p,i){return '<div class="prev-item"><img src="'+esc(p)+'"><button class="prm" data-i="'+i+'" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:15px;height:15px;font-size:9px;cursor:pointer;border-radius:2px;">&times;</button></div>';}).join('');}
+function renderPrev(){document.getElementById('prev-grid').innerHTML=pPh.map(function(p,i){return '<div class="prev-item">'+mediaThumbMarkup(p,'','')+'<button class="prm" data-i="'+i+'" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:15px;height:15px;font-size:9px;cursor:pointer;border-radius:2px;">&times;</button></div>';}).join('');}
 
 // ── WIRE EVERYTHING ON DOM READY ────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function() {
