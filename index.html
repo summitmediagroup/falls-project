@@ -1064,6 +1064,10 @@ function mediaIsVideo(src){
   var s=String(src||'').toLowerCase();
   return /^data:video\//.test(s) || /\.(mp4|mov|m4v|webm|ogg)(\?|#|$)/.test(s);
 }
+function mediaItem(raw){
+  if(raw && typeof raw==='object' && raw.url) return raw;
+  return {url:String(raw||''),file:null};
+}
 function mediaThumbMarkup(src, alt, cls){
   if(mediaIsVideo(src)){
     return '<video class="'+esc(cls||'')+'" src="'+esc(src)+'" muted playsinline preload="metadata"></video>';
@@ -1474,7 +1478,7 @@ function openWF(id,rowId){
   var log=editingLogRowId?getLogByRowId(id,editingLogRowId):null;
   var isPaid=!!(ME&&ME.is_pro);
   var overview=buildWaterfallOverview(f);
-  pPh=log&&log.photos?log.photos.slice():[];
+  pPh=log&&log.photos?log.photos.map(mediaItem):[];
   pStar=log&&log.rating?log.rating:0;
   pPriv=log&&log.privacy?log.privacy:'public';
   document.getElementById('wf-reg').textContent=f.region;
@@ -1585,11 +1589,15 @@ function renderPriv(){
 }
 
 async function uploadPhotosForLog(logId){
-  var keepUrls=[], newData=[];
-  (pPh||[]).forEach(function(p){ if(/^data:(image|video)\//.test(p)) newData.push(p); else keepUrls.push(p); });
+  var keepUrls=[], newFiles=[];
+  (pPh||[]).forEach(function(item){
+    item=mediaItem(item);
+    if(item.file) newFiles.push(item.file);
+    else if(item.url) keepUrls.push(item.url);
+  });
   var uploaded=[];
-  for(var i=0;i<newData.length;i++){
-    var blob=dataUrlToBlob(newData[i]);
+  for(var i=0;i<newFiles.length;i++){
+    var blob=newFiles[i];
     var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('quicktime','mov');
     var filePath=ME.id+'/'+logId+'/'+Date.now()+'_'+i+'.'+ext;
     var up=await sb.storage.from('waterfall-photos').upload(filePath, blob, {upsert:true, contentType:blob.type});
@@ -1903,7 +1911,7 @@ function closeOv(id){document.getElementById(id).classList.remove('open');}
 function showLb(src){document.getElementById('lb-img').src=src;document.getElementById('lb').classList.add('open');}
 var _t;
 function toast(msg){if(_t)_t.remove();_t=document.createElement('div');_t.className='toast';_t.textContent=msg;document.body.appendChild(_t);setTimeout(function(){if(_t){_t.remove();_t=null;}},3000);}
-function renderPrev(){document.getElementById('prev-grid').innerHTML=pPh.map(function(p,i){return '<div class="prev-item">'+mediaThumbMarkup(p,'','')+'<button class="prm" data-i="'+i+'" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:15px;height:15px;font-size:9px;cursor:pointer;border-radius:2px;">&times;</button></div>';}).join('');}
+function renderPrev(){document.getElementById('prev-grid').innerHTML=pPh.map(function(p,i){var item=mediaItem(p);return '<div class="prev-item">'+mediaThumbMarkup(item.url,'','')+'<button class="prm" data-i="'+i+'" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:15px;height:15px;font-size:9px;cursor:pointer;border-radius:2px;">&times;</button></div>';}).join('');}
 
 // ── WIRE EVERYTHING ON DOM READY ────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1956,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(prv)prv.addEventListener('click',function(){setPriv('private');});
   // Photo input
   var pi=document.getElementById('photo-inp');
-  if(pi)pi.addEventListener('change',function(e){Array.from(e.target.files).slice(0,6).forEach(function(file){var r=new FileReader();r.onload=function(ev){pPh.push(ev.target.result);renderPrev();};r.readAsDataURL(file);});e.target.value='';});
+  if(pi)pi.addEventListener('change',function(e){Array.from(e.target.files).slice(0,6).forEach(function(file){var previewUrl=URL.createObjectURL(file);pPh.push({url:previewUrl,file:file});renderPrev();});e.target.value='';});
   // Delegated clicks
   document.getElementById('prev-grid').addEventListener('click',function(e){var b=e.target.closest('.prm');if(b){pPh.splice(parseInt(b.dataset.i,10),1);renderPrev();}});
   document.getElementById('ex-grid').addEventListener('click',function(e){var c=e.target.closest('.pcard');if(c)openPost(c.dataset.pid);});
