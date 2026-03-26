@@ -163,6 +163,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .pcard-exc{font-size:.72rem;color:rgba(255,255,255,.36);line-height:1.6;margin-bottom:9px;}
 .pcard-foot{display:flex;align-items:center;gap:7px;font-size:.62rem;color:rgba(255,255,255,.25);}
 .pcard-av{width:17px;height:17px;border-radius:50%;background:var(--sage);border:1px solid rgba(200,150,60,.3);display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;color:var(--gold);flex-shrink:0;}
+.founder-mark{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid rgba(200,150,60,.24);background:rgba(200,150,60,.08);color:var(--gold);font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;white-space:nowrap;}
 .ex-empty{grid-column:1/-1;padding:72px 20px;text-align:center;}
 .ex-empty h3{font-family:"Cormorant",serif;font-size:1.35rem;font-weight:300;color:rgba(255,255,255,.25);margin-bottom:5px;}
 .ex-empty p{font-size:.74rem;color:rgba(255,255,255,.16);}
@@ -890,9 +891,9 @@ async function openBillingPortal(){
   }
 }
 function getActivityBadge(logCount){
-  if(logCount>=25) return {label:'Explorer',icon:'🔥'};
+  if(logCount>=15) return {label:'Cascade Keeper',icon:'🏞️'};
   if(logCount>=10) return {label:'Waterfall Hunter',icon:'🌊'};
-  if(logCount>=5) return {label:'Trail Scout',icon:'🥾'};
+  if(logCount>=5) return {label:'Ripple Runner',icon:'💦'};
   if(logCount>=1) return {label:'First Drop',icon:'💧'};
   return null;
 }
@@ -904,17 +905,23 @@ function getFounderBadge(profile){
 }
 var BADGE_ART={
   member:'badge-explorer.png',
-  founder:'badge-founding-explorer.png'
+  founder:'badge-founding-explorer.png',
+  first:'badge-first-drop.jpg',
+  runner:'badge-ripple-runner.jpg',
+  hunter:'badge-waterfall-hunter.jpg',
+  keeper:'badge-cascade-keeper.jpg'
 };
 function getBadgeVault(logCount, isFounder){
   return [
-    {key:'member',track:'Member Badge',label:'Explorer',desc:'Every account starts with the Explorer badge. You are officially in the record now.',unlocked:true,image:BADGE_ART.member,kind:'member'},
-    {key:'founder',track:'Founding Status',label:'Founding Explorer',desc:'Reserved for the first 100 explorers who joined The Falls Project.',unlocked:!!isFounder,image:BADGE_ART.founder,kind:'founder'},
-    {key:'first-drop',track:'Activity Badge',label:'First Drop',desc:'Log your first waterfall to begin your collection.',threshold:1,unlocked:logCount>=1,tier:'first',mark:'I'},
-    {key:'trail-scout',track:'Activity Badge',label:'Trail Scout',desc:'For explorers who are starting to build a real trail rhythm.',threshold:5,unlocked:logCount>=5,tier:'scout',mark:'V'},
-    {key:'waterfall-hunter',track:'Activity Badge',label:'Waterfall Hunter',desc:'A mark for the families who keep chasing the next fall.',threshold:10,unlocked:logCount>=10,tier:'hunter',mark:'X'},
-    {key:'activity-explorer',track:'Activity Badge',label:'Explorer',desc:'Your top activity crest for logging 25 waterfalls.',threshold:25,unlocked:logCount>=25,tier:'explorer',mark:'XXV'}
-  ];
+    (isFounder
+      ? {key:'founder',track:'Founding Status',label:'Founding Explorer',desc:'Reserved for the first 100 paid explorers who joined The Falls Project.',unlocked:true,image:BADGE_ART.founder,kind:'founder'}
+      : {key:'member',track:'Member Badge',label:'Explorer',desc:'The standard paid Explorer badge for members building their waterfall record.',unlocked:true,image:BADGE_ART.member,kind:'member'}),
+    (!isFounder?{key:'founder',track:'Founding Status',label:'Founding Explorer',desc:'Reserved for the first 100 paid explorers who joined The Falls Project.',unlocked:false,image:BADGE_ART.founder,kind:'founder'}:null),
+    {key:'first-drop',track:'Activity Badge',label:'First Drop',desc:'Your first real mark in the trail record. One fall logged, and the collection begins.',threshold:1,unlocked:logCount>=1,tier:'first',mark:'I',image:BADGE_ART.first},
+    {key:'ripple-runner',track:'Activity Badge',label:'Ripple Runner',desc:'For explorers who are finding their stride and starting to stack up memorable weekends.',threshold:5,unlocked:logCount>=5,tier:'scout',mark:'V',image:BADGE_ART.runner},
+    {key:'waterfall-hunter',track:'Activity Badge',label:'Waterfall Hunter',desc:'A mark for the families who keep chasing the next fall and never stop planning the next outing.',threshold:10,unlocked:logCount>=10,tier:'hunter',mark:'X',image:BADGE_ART.hunter},
+    {key:'cascade-keeper',track:'Activity Badge',label:'Cascade Keeper',desc:'Your top crest for building a serious waterfall record and collecting the falls worth returning to.',threshold:15,unlocked:logCount>=15,tier:'explorer',mark:'XV',image:BADGE_ART.keeper}
+  ].filter(Boolean);
 }
 function badgeCardArt(badge){
   var fallback='<span class="badge-fallback"><div class="badge-mark" data-tier="'+esc(badge.tier||'explorer')+'">'+esc(badge.mark||badge.label[0]||'?')+'</div></span>';
@@ -956,13 +963,16 @@ function makeBadgeCardMarkup(kind, badge){
   +'</div>';
 }
 async function isFoundingExplorer(profile){
-  if(!profile || !profile.id || !profile.created_at) return false;
-  var res=await sb.from('profiles').select('id',{count:'exact',head:true}).lte('created_at',profile.created_at);
+  if(!profile || !profile.id || !profile.created_at || !profileIsPro(profile)) return false;
+  var res=await sb.from('profiles').select('id',{count:'exact',head:true}).eq('plan','pro').lte('created_at',profile.created_at);
   if(res.error){
     console.error(res.error);
     return false;
   }
   return !!res.count && res.count<=100;
+}
+function founderMarkMarkup(isFounder){
+  return isFounder?'<span class="founder-mark">★ Founder</span>':'';
 }
 
 async function ensureProfile(user){
@@ -1053,11 +1063,17 @@ async function refreshAllData(){
     var pr=await sb.from('waterfall_photos').select('log_id,photo_url').in('log_id',ids).order('created_at',{ascending:true});
     if(!pr.error) photos=mapPhotos(pr.data||[]);
   }
-  var nameMap={};
+  var nameMap={}, founderMap={};
   var uids=Array.from(new Set(rows.map(function(r){return r.user_id;}).filter(Boolean)));
   if(uids.length){
-    var nr=await sb.from('profiles').select('id,name').in('id',uids);
-    if(!nr.error){(nr.data||[]).forEach(function(n){nameMap[n.id]=n.name||'Hiker';});}
+    var nr=await sb.from('profiles').select('id,name,plan,created_at').in('id',uids);
+    if(!nr.error){
+      var founders=(nr.data||[]).filter(function(n){return profileIsPro(n) && n.created_at;}).sort(function(a,b){
+        return new Date(a.created_at).getTime()-new Date(b.created_at).getTime();
+      }).slice(0,100);
+      founders.forEach(function(f){founderMap[f.id]=true;});
+      (nr.data||[]).forEach(function(n){nameMap[n.id]=n.name||'Hiker';});
+    }
   }
   rows.forEach(function(r){
     var f=FALLS.find(function(x){return x.id===r.waterfall_id;});
@@ -1066,6 +1082,7 @@ async function refreshAllData(){
     if(r.visibility==='public'){
       DB.posts[r.id]={
         id:r.id,userId:r.user_id,fallId:r.waterfall_id,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
+        isFounder:!!founderMap[r.user_id],
         date:log.date,ts:log.ts,rating:log.rating,condition:log.condition,loved:log.loved,improve:log.improve,
         tips:log.tips,duration:log.duration,privacy:'public',photos:log.photos.slice(0,8),
         fallName:r.waterfall_name||(f?f.name:'Waterfall Visit'),fallRegion:f?f.region:'Georgia'
@@ -1255,7 +1272,7 @@ function openWF(id){
     var h='<div class="sec-hd">Explorer Stories From The Trail ('+pubs.length+')</div>';
     pubs.forEach(function(p){
       var st=p.rating?'&#9733;'.repeat(p.rating):'';
-      h+='<div class="mpost" data-pid="'+p.id+'"><div class="mpost-hd"><span class="mpost-auth">'+esc(p.authorName||'Hiker')+'</span><span class="mpost-dt">'+esc(p.date||'')+'</span></div><div class="mpost-stars">'+st+'</div><div class="mpost-txt">'+esc(p.loved||p.tips||'')+'</div><div class="mpost-link">Open Story</div></div>';
+      h+='<div class="mpost" data-pid="'+p.id+'"><div class="mpost-hd"><span class="mpost-auth">'+esc(p.authorName||'Hiker')+founderMarkMarkup(p.isFounder)+'</span><span class="mpost-dt">'+esc(p.date||'')+'</span></div><div class="mpost-stars">'+st+'</div><div class="mpost-txt">'+esc(p.loved||p.tips||'')+'</div><div class="mpost-link">Open Story</div></div>';
     });
     ce.innerHTML=h;
   } else {
@@ -1404,7 +1421,7 @@ function renderExplore(){
     var stars=p.rating?'&#9733;'.repeat(p.rating):'';
     var base=(p.loved||p.tips||p.improve||'An adventure in the Georgia mountains');
     var exc=esc(base.length>100?base.slice(0,100)+'...':base);
-    return '<div class="pcard" data-pid="'+p.id+'"><div class="pcard-img">'+(hero?'<img src="'+esc(hero)+'" alt="">':'<div class="pcard-ph">&#128167;</div>')+'<div class="pcard-overlay"></div>'+(p.rating?'<div class="pcard-stars">'+stars+'</div>':'')+'</div><div class="pcard-body"><div class="pcard-wf">'+esc((p.fallRegion||'')+' · '+(p.date||''))+'</div><div class="pcard-title">'+esc(p.fallName||'Waterfall Visit')+'</div><div class="pcard-exc">'+exc+'</div><div class="pcard-foot"><div class="pcard-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><span>'+esc(p.authorName||'Hiker')+'</span>'+(p.duration?'<span>&middot; '+esc(p.duration)+'</span>':'')+'</div></div></div>';
+    return '<div class="pcard" data-pid="'+p.id+'"><div class="pcard-img">'+(hero?'<img src="'+esc(hero)+'" alt="">':'<div class="pcard-ph">&#128167;</div>')+'<div class="pcard-overlay"></div>'+(p.rating?'<div class="pcard-stars">'+stars+'</div>':'')+'</div><div class="pcard-body"><div class="pcard-wf">'+esc((p.fallRegion||'')+' · '+(p.date||''))+'</div><div class="pcard-title">'+esc(p.fallName||'Waterfall Visit')+'</div><div class="pcard-exc">'+exc+'</div><div class="pcard-foot"><div class="pcard-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><span>'+esc(p.authorName||'Hiker')+'</span>'+founderMarkMarkup(p.isFounder)+(p.duration?'<span>&middot; '+esc(p.duration)+'</span>':'')+'</div></div></div>';
   }).join('');
 }
 
@@ -1415,7 +1432,7 @@ function openPost(pid){
   var hbg=document.getElementById('post-bg');
   hbg.innerHTML=p.photos&&p.photos.length?p.photos.slice(0,3).map(function(x){return '<img src="'+esc(x)+'" alt="">';}).join(''):'<img src="'+heroFor(p.fallId||'')+'" alt="" style="width:100%;height:100%;object-fit:cover">';
   var stats=[p.rating?'<div class="pstat"><div class="pstat-v" style="color:var(--gold)">'+'&#9733;'.repeat(p.rating)+'</div><div class="pstat-k">Rating</div></div>':'',p.duration?'<div class="pstat"><div class="pstat-v">'+esc(p.duration)+'</div><div class="pstat-k">Duration</div></div>':'',p.date?'<div class="pstat"><div class="pstat-v" style="font-size:.88rem">'+esc(p.date)+'</div><div class="pstat-k">Visited</div></div>':''].filter(Boolean).join('');
-  document.getElementById('post-bd').innerHTML='<div class="post-abar"><div class="post-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc(p.authorName||'Hiker')+'</div><div class="post-adt">'+esc((p.date||'')+(p.condition?' · '+p.condition:''))+'</div></div></div>'+(stats?'<div class="post-stats">'+stats+'</div>':'')+(p.loved?'<div class="post-sec"><div class="post-sec-lbl">Loved It</div><div class="post-sec-txt">'+esc(p.loved)+'</div></div>':'')+(p.improve?'<div class="post-sec"><div class="post-sec-lbl">Could Be Better</div><div class="post-sec-txt">'+esc(p.improve)+'</div></div>':'')+(p.tips?'<div class="post-sec"><div class="post-sec-lbl">Tips for You</div><div class="post-sec-txt">'+esc(p.tips)+'</div></div>':'')+'<div class="post-cta"><button class="btn-out" data-goto="'+p.fallId+'">View Falls &amp; Log Visit</button></div>';
+  document.getElementById('post-bd').innerHTML='<div class="post-abar"><div class="post-av">'+esc((p.authorName||'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc(p.authorName||'Hiker')+founderMarkMarkup(p.isFounder)+'</div><div class="post-adt">'+esc((p.date||'')+(p.condition?' · '+p.condition:''))+'</div></div></div>'+(stats?'<div class="post-stats">'+stats+'</div>':'')+(p.loved?'<div class="post-sec"><div class="post-sec-lbl">Loved It</div><div class="post-sec-txt">'+esc(p.loved)+'</div></div>':'')+(p.improve?'<div class="post-sec"><div class="post-sec-lbl">Could Be Better</div><div class="post-sec-txt">'+esc(p.improve)+'</div></div>':'')+(p.tips?'<div class="post-sec"><div class="post-sec-lbl">Tips for You</div><div class="post-sec-txt">'+esc(p.tips)+'</div></div>':'')+'<div class="post-cta"><button class="btn-out" data-goto="'+p.fallId+'">View Falls &amp; Log Visit</button></div>';
   openOv('ov-post');
 }
 
