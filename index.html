@@ -195,6 +195,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .guide-item strong{display:block;font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
 .guide-item p{font-size:.75rem;line-height:1.6;color:rgba(255,255,255,.46);}
 .guide-note{margin-top:16px;font-size:.7rem;line-height:1.6;color:rgba(255,255,255,.28);}
+.about-link{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(200,150,60,.35);padding-bottom:1px;}
+.about-link:hover{color:var(--cream);border-bottom-color:rgba(240,232,216,.45);}
 #pg-explore{flex-direction:column;overflow-y:auto;}
 .ex-hero{height:380px;position:relative;overflow:hidden;flex-shrink:0;}
 .ex-hero-bg{position:absolute;inset:0;display:flex;}
@@ -568,6 +570,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
           <p>The Falls Project started with a simple real-life problem: <strong>too many moving parts, too many memories to keep straight, and no easy way to remember which waterfalls were worth going back to.</strong> Between children, pets, work, and the thousand things life asks of a full life, the dream was never to create one more thing to manage. It was to create one place that managed it for you.</p>
           <p>After one too many wasted Sundays, including a last-minute waterfall trip that turned out to be a trail the family had already tried and hated, this became more than an idea. It became the answer to a real need: <strong>a beautiful, simple place to keep track of where you have been, what you loved, and what should come next.</strong></p>
           <p>This was built for everyone. Families with toddlers. Beginners who do not want to guess wrong. Women looking for inspiring places to explore. Memory keepers. Hidden-falls hunters. People with limited bandwidth, limited time, or limited mobility who still deserve beauty, nature, and adventure.</p>
+          <p><a href="mailto:hello@thefallsproject.com" class="about-link">Contact The Falls Project</a></p>
         </div>
       </div>
       <div class="about-quote">
@@ -1018,6 +1021,40 @@ function normalizeFallRow(row){
     desc:String(pickFirst(row,['desc','description','notes'])||'A beautiful waterfall waiting to be explored.').trim()
   };
 }
+function rowFlagValue(row, keys){
+  for(var i=0;i<keys.length;i++){
+    if(row[keys[i]]!==undefined) return row[keys[i]];
+  }
+  return undefined;
+}
+function flagIsTrue(v){
+  if(v===true || v===1) return true;
+  var s=String(v||'').trim().toLowerCase();
+  return s==='true' || s==='1' || s==='yes' || s==='y' || s==='public' || s==='published' || s==='approved' || s==='verified' || s==='live';
+}
+function rowIsVerifiedPublic(row){
+  var publicVal=rowFlagValue(row,['is_public','public','published','visible']);
+  var verifiedVal=rowFlagValue(row,['is_verified','verified','approved']);
+  var statusVal=rowFlagValue(row,['status','visibility']);
+
+  var requiresPublic=publicVal!==undefined || statusVal!==undefined;
+  var requiresVerified=verifiedVal!==undefined || statusVal!==undefined;
+
+  var isPublicOk=true;
+  var isVerifiedOk=true;
+
+  if(publicVal!==undefined) isPublicOk=flagIsTrue(publicVal);
+  if(verifiedVal!==undefined) isVerifiedOk=flagIsTrue(verifiedVal);
+
+  if(statusVal!==undefined){
+    var status=String(statusVal||'').trim().toLowerCase();
+    isPublicOk=isPublicOk && (status==='public' || status==='published' || status==='approved' || status==='live');
+    isVerifiedOk=isVerifiedOk && (status==='approved' || status==='verified' || status==='published' || status==='live');
+  }
+
+  if(!requiresPublic && !requiresVerified) return true;
+  return isPublicOk && isVerifiedOk;
+}
 function mergeFalls(rows){
   var merged={}, order=[];
   FALLS_FALLBACK.forEach(function(f){
@@ -1043,7 +1080,7 @@ async function loadFallsFromSupabase(){
       return;
     }
     if(res.data && res.data.length){
-      mergeFalls(res.data);
+      mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
     } else {
       FALLS=FALLS_FALLBACK.slice();
     }
@@ -1404,11 +1441,12 @@ function renderList(){
   var el=document.getElementById('falls-list');el.innerHTML='';
   var filtered=FALLS.filter(function(f){
     var state=String(f.state||'').toLowerCase();
+    var stateName=String(f.state_name||'').toLowerCase();
     var haystack=[f.name,f.region,f.state,f.state_name].join(' ').toLowerCase();
     if(fMode==='visited'&&!isVis(f.id))return false;
     if(fMode==='unvisited'&&isVis(f.id))return false;
     if(fMode==='saved'&&!isSaved(f.id))return false;
-    if(q && !haystack.includes(q)){
+    if(q){
       var stateMatches=
         (q==='georgia' && state==='ga') ||
         (q==='ga' && state==='ga') ||
@@ -1420,13 +1458,31 @@ function renderList(){
         (q==='tn' && state==='tn') ||
         (q==='alabama' && state==='al') ||
         (q==='al' && state==='al');
-      if(!stateMatches) return false;
+      var name=String(f.name||'').toLowerCase();
+      var region=String(f.region||'').toLowerCase();
+      var exactName=(name===q);
+      var startsName=name.indexOf(q)===0;
+      var wordName=name.indexOf(' '+q)>=0;
+      var exactRegion=(region===q);
+      var startsRegion=region.indexOf(q)===0;
+      var exactState=(state===q || stateName===q);
+      if(!(stateMatches || exactName || startsName || wordName || exactRegion || startsRegion || exactState || haystack.includes(q))) return false;
     }
     return true;
   });
+  if(q){
+    filtered=filtered.slice().sort(function(a,b){
+      return searchRank(a,q)-searchRank(b,q);
+    });
+  }
   if(USER_POS){
     filtered=filtered.slice().sort(function(a,b){
-      return milesBetween(USER_POS.lat,USER_POS.lng,a.lat,a.lng)-milesBetween(USER_POS.lat,USER_POS.lng,b.lat,b.lng);
+      var dist=milesBetween(USER_POS.lat,USER_POS.lng,a.lat,a.lng)-milesBetween(USER_POS.lat,USER_POS.lng,b.lat,b.lng);
+      if(q){
+        var rankDiff=searchRank(a,q)-searchRank(b,q);
+        return rankDiff!==0?rankDiff:dist;
+      }
+      return dist;
     });
   }
   filtered.forEach(function(f){
@@ -1444,6 +1500,22 @@ function renderList(){
     d.addEventListener('click',function(){openWF(f.id);});
     el.appendChild(d);
   });
+}
+
+function searchRank(f,q){
+  var name=String(f.name||'').toLowerCase();
+  var region=String(f.region||'').toLowerCase();
+  var state=String(f.state||'').toLowerCase();
+  var stateName=String(f.state_name||'').toLowerCase();
+  var haystack=[name,region,state,stateName].join(' ');
+  if(name===q) return 0;
+  if(name.indexOf(q)===0) return 1;
+  if(name.indexOf(' '+q)>=0) return 2;
+  if(region===q) return 3;
+  if(region.indexOf(q)===0) return 4;
+  if(state===q || stateName===q) return 5;
+  if(haystack.includes(q)) return 6;
+  return 7;
 }
 
 function journeyFitCopy(f){
@@ -2031,6 +2103,28 @@ document.addEventListener('DOMContentLoaded', async function() {
       flex:0 0 auto;
     ">
     <div>Created by <span style="font-weight:600;">Summit Media Group</span></div>
+  </a>
+  <a href="mailto:hello@thefallsproject.com" style="
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    color:#dce7df;
+    text-decoration:none;
+    margin-left:18px;
+  ">
+    <span style="
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      border:1px solid rgba(200,150,60,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(200,150,60,.92);
+      font-size:0.78rem;
+      flex:0 0 auto;
+    ">@</span>
+    <div>Contact <span style="font-weight:600;">hello@thefallsproject.com</span></div>
   </a>
 </footer>
 
