@@ -810,6 +810,7 @@ var FALLS_FALLBACK=[
   {id:"hemlock_moccasin",name:"Hemlock Falls (Moccasin Creek)",region:"Towns County",lat:34.8525,lng:-83.6109,height:"35 ft",diff:"Easy",type:"Cascade",trail:"0.5 mi",fee:"$5",desc:"A lovely cascade on Moccasin Creek within Moccasin Creek State Park."},
   {id:"flat_branch",name:"Flat Branch Falls",region:"Towns County",lat:34.9100,lng:-83.8500,height:"25 ft",diff:"Easy",type:"Slide",trail:"1.0 mi",fee:"Free",desc:"A gentle slide waterfall in Towns County. Short and sweet."},
   {id:"toccoa",name:"Toccoa Falls",region:"Stephens County",lat:34.5853,lng:-83.3258,height:"186 ft",diff:"Easy",type:"Plunge",trail:"0.2 mi",fee:"$3",desc:"At 186 feet, one of the tallest free-falling waterfalls in the eastern US. A 200-yard walk from parking."},
+  {id:"toccoa_swinging_bridge",name:"Toccoa River Swinging Bridge",region:"Fannin County",lat:34.7369,lng:-84.1673,height:"270 ft bridge",diff:"Easy",type:"Beyond the Falls",trail:"0.8 mi",fee:"Free",desc:"A scenic river stop on the Benton MacKaye Trail with a long suspension bridge, big Toccoa River views, and a little extra water magic beyond the waterfalls."},
   {id:"panther_stephens",name:"Panther Creek Falls",region:"Stephens County",lat:34.6214,lng:-83.5036,height:"60 ft",diff:"Moderate",type:"Slide",trail:"7.8 mi",fee:"Free",desc:"A 60-foot horseshoe slide waterfall. The 7.8-mile round trip is one of Georgia's finest hikes."},
   {id:"cloudland_cherokee",name:"Cherokee Falls",region:"Walker County",lat:34.8345,lng:-85.4817,height:"60 ft",diff:"Moderate",type:"Plunge",trail:"2.0 mi",fee:"$5",desc:"A gorgeous 60-foot plunge in Cloudland Canyon State Park. Descend 600 steps into the gorge."},
   {id:"cloudland_hemlock",name:"Hemlock Falls (Cloudland)",region:"Walker County",lat:34.8360,lng:-85.4820,height:"90 ft",diff:"Moderate",type:"Plunge",trail:"2.0 mi",fee:"$5",desc:"The taller of Cloudland Canyon's two falls at 90 feet. A spectacular hidden gem."},
@@ -1520,23 +1521,29 @@ function searchRank(f,q){
 
 function journeyFitCopy(f){
   var miles=parseFloat(String(f.trail||'').replace(/[^0-9.]/g,''))||0;
+  if(isBeyondTheFallsStop(f)) return 'Perfect for a scenic stop, a river walk, and the kind of place that makes the whole day feel worth it.';
   if(String(f.diff||'')==='Easy' && miles && miles<=1) return 'Perfect for a quick stop, first-timers, and anyone who wants beauty without a long climb.';
   if(String(f.diff||'')==='Easy') return 'A rewarding outing when you want the feeling of an adventure without giving up your whole day.';
   if(String(f.diff||'')==='Moderate') return 'Best for explorers who want a real hike, a worthwhile payoff, and a story to bring home.';
   return 'A bigger trail day for people chasing the kind of waterfall you remember long after your boots dry out.';
 }
+function isBeyondTheFallsStop(f){
+  return String((f&&f.type)||'').toLowerCase()==='beyond the falls';
+}
 function trailMoodCopy(f){
   var fee=String(f.fee||'Free');
-  var type=String(f.type||'waterfall').toLowerCase();
+  var type=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
   var feeCopy=fee==='Free'?'No entry fee listed.':'Expect '+fee+' in fees.';
   return 'This '+type+' sits in '+(f.region||'a beautiful stretch of trail')+'. '+feeCopy;
 }
 function buildWaterfallOverview(f){
+  var subject=isBeyondTheFallsStop(f)?'water-side stop':'waterfall';
+  var sceneType=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
   return {
-    title:'Why explorers go',
-    copy:(f.desc||'A beautiful waterfall waiting to be explored.')+' It is the kind of stop that can turn a regular day outside into something memorable.',
+    title:isBeyondTheFallsStop(f)?'Why explorers stop here':'Why explorers go',
+    copy:(f.desc||('A beautiful '+subject+' waiting to be explored.'))+' It is the kind of stop that can turn a regular day outside into something memorable.',
     fit:journeyFitCopy(f),
-    scene:'A '+String(f.type||'waterfall').toLowerCase()+' with '+(f.height||'an unforgettable drop')+' and a '+(f.trail||'varied')+' round trip.',
+    scene:'A '+sceneType+' with '+(f.height||'an unforgettable view')+' and a '+(f.trail||'varied')+' round trip.',
     note:trailMoodCopy(f)
   };
 }
