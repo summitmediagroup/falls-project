@@ -836,6 +836,8 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
 var SAVED_KEY='falls_saved_to_visit_v1';
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
+var SESSION_CACHE_KEY='falls_session_cache_v1';
+var SESSION_READY=false;
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -873,6 +875,76 @@ function shouldShowHomeTip(){
   } catch(err){
     return true;
   }
+}
+function draftKeyFor(id){
+  return id?'falls_draft_'+id:'';
+}
+function getDraftFor(id){
+  try{
+    var raw=localStorage.getItem(draftKeyFor(id));
+    return raw?JSON.parse(raw):null;
+  } catch(err){
+    return null;
+  }
+}
+function setDraftFor(id,draft){
+  try{
+    if(id) localStorage.setItem(draftKeyFor(id),JSON.stringify(draft));
+  } catch(err){}
+}
+function clearDraftFor(id){
+  try{
+    if(id) localStorage.removeItem(draftKeyFor(id));
+  } catch(err){}
+}
+function currentDraftData(){
+  return {
+    date:document.getElementById('f-date').value||'',
+    duration:document.getElementById('f-dur').value||'',
+    condition:document.getElementById('f-cond').value||'',
+    water:document.getElementById('f-wat').value||'',
+    loved:document.getElementById('f-loved').value||'',
+    improve:document.getElementById('f-imp').value||'',
+    tips:document.getElementById('f-tips').value||'',
+    rating:pStar||0,
+    privacy:pPriv||'public',
+    mediaNote:(pPh||[]).some(function(item){return mediaItem(item).file;})?'Local photos or videos need to be reselected after a refresh.':''
+  };
+}
+function persistCurrentDraft(){
+  if(!wfId || editingLogRowId || !(ME&&ME.is_pro)) return;
+  setDraftFor(wfId,currentDraftData());
+}
+function applyDraftToForm(draft){
+  if(!draft) return false;
+  document.getElementById('f-date').value=draft.date||new Date().toISOString().slice(0,10);
+  document.getElementById('f-dur').value=draft.duration||'';
+  document.getElementById('f-cond').value=draft.condition||'';
+  document.getElementById('f-wat').value=draft.water||'';
+  document.getElementById('f-loved').value=draft.loved||'';
+  document.getElementById('f-imp').value=draft.improve||'';
+  document.getElementById('f-tips').value=draft.tips||'';
+  pStar=draft.rating||0;
+  pPriv=draft.privacy||'public';
+  return true;
+}
+function cacheSessionSnapshot(){
+  try{
+    if(ME) localStorage.setItem(SESSION_CACHE_KEY,JSON.stringify(ME));
+  } catch(err){}
+}
+function restoreCachedSession(){
+  try{
+    var raw=localStorage.getItem(SESSION_CACHE_KEY);
+    if(!raw) return null;
+    var parsed=JSON.parse(raw);
+    return parsed&&parsed.id&&parsed.email?parsed:null;
+  } catch(err){
+    return null;
+  }
+}
+function clearCachedSession(){
+  try{localStorage.removeItem(SESSION_CACHE_KEY);}catch(err){}
 }
 function dismissHomeTip(){
   try{localStorage.setItem(HOME_TIP_KEY,'1');}catch(err){}
@@ -1273,20 +1345,38 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
-  var s=await sb.auth.getSession();
-  var user=s.data&&s.data.session&&s.data.session.user;
-  if(!user){ME=null;return;}
-  var prof=await ensureProfile(user);
-  var isFounder=await isFoundingExplorer(prof);
-  ME={
-    id:user.id,
-    name:(prof&&prof.name)||user.email.split('@')[0],
-    email:user.email,
-    plan:(prof&&prof.plan)||'free',
-    is_pro:profileIsPro(prof),
-    created_at:(prof&&prof.created_at)||null,
-    is_founding_explorer:isFounder
-  };
+  try{
+    var s=await sb.auth.getSession();
+    var user=s.data&&s.data.session&&s.data.session.user;
+    if(!user){
+      ME=null;
+      clearCachedSession();
+      SESSION_READY=true;
+      return;
+    }
+    var prof=await ensureProfile(user);
+    var isFounder=await isFoundingExplorer(prof);
+    ME={
+      id:user.id,
+      name:(prof&&prof.name)||user.email.split('@')[0],
+      email:user.email,
+      plan:(prof&&prof.plan)||'free',
+      is_pro:profileIsPro(prof),
+      created_at:(prof&&prof.created_at)||null,
+      is_founding_explorer:isFounder
+    };
+    cacheSessionSnapshot();
+    SESSION_READY=true;
+  } catch(err){
+    var cached=restoreCachedSession();
+    if(cached){
+      ME=cached;
+      SESSION_READY=true;
+      console.warn('Using cached session after auth hiccup');
+      return;
+    }
+    throw err;
+  }
 }
 
 function mapPhotos(rows){
@@ -1316,8 +1406,8 @@ function rowToLog(r, photos){
 }
 
 async function refreshAllData(){
-  DB={users:{},posts:{}};
-  if(ME) DB.users[ME.id]={logs:{}};
+  var nextDB={users:{},posts:{}};
+  if(ME) nextDB.users[ME.id]={logs:{}};
   var q=sb.from('waterfall_logs').select('*').order('created_at',{ascending:false});
   if(ME) q=q.or('visibility.eq.public,user_id.eq.'+ME.id);
   else q=q.eq('visibility','public');
@@ -1346,11 +1436,11 @@ async function refreshAllData(){
     var f=FALLS.find(function(x){return x.id===r.waterfall_id;});
     var log=rowToLog(r,photos);
     if(ME && r.user_id===ME.id){
-      if(!DB.users[ME.id].logs[r.waterfall_id]) DB.users[ME.id].logs[r.waterfall_id]=[];
-      DB.users[ME.id].logs[r.waterfall_id].push(log);
+      if(!nextDB.users[ME.id].logs[r.waterfall_id]) nextDB.users[ME.id].logs[r.waterfall_id]=[];
+      nextDB.users[ME.id].logs[r.waterfall_id].push(log);
     }
     if(r.visibility==='public'){
-      DB.posts[r.id]={
+      nextDB.posts[r.id]={
         id:r.id,userId:r.user_id,fallId:r.waterfall_id,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
         isFounder:!!founderMap[r.user_id],
         date:log.date,ts:log.ts,rating:log.rating,condition:log.condition,water:log.water,loved:log.loved,improve:log.improve,
@@ -1359,6 +1449,7 @@ async function refreshAllData(){
       };
     }
   });
+  DB=nextDB;
   renderNav();renderLandingCtas();renderList();renderExplore();renderJournal();
   FALLS.forEach(function(f){refreshMk(f.id);});
 }
@@ -1632,6 +1723,12 @@ function openWF(id,rowId){
     document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
     ['f-dur','f-loved','f-imp','f-tips'].forEach(function(x){document.getElementById(x).value='';});
     document.getElementById('f-cond').value='';document.getElementById('f-wat').value='';
+    if(isPaid){
+      var restoredDraft=getDraftFor(id);
+      if(restoredDraft && applyDraftToForm(restoredDraft)){
+        xe.innerHTML+='<div class="wf-visit-note">Recovered your unsaved draft for this stop.'+(restoredDraft.mediaNote?' '+restoredDraft.mediaNote:'')+'</div>';
+      }
+    }
   }
   if(!log && latestLog && logs.length){
     xe.innerHTML+='<div class="wf-visit-note">You have logged this waterfall before. This form will save a brand new visit so you can keep seasonal memories, trail changes, and fresh photos.</div>';
@@ -1674,16 +1771,14 @@ async function uploadPhotosForLog(logId){
     if(item.file) newFiles.push(item.file);
     else if(item.url) keepUrls.push(item.url);
   });
-  var uploaded=[];
-  for(var i=0;i<newFiles.length;i++){
-    var blob=newFiles[i];
+  var uploaded=await Promise.all(newFiles.map(async function(blob,i){
     var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('quicktime','mov');
     var filePath=ME.id+'/'+logId+'/'+Date.now()+'_'+i+'.'+ext;
     var up=await sb.storage.from('waterfall-photos').upload(filePath, blob, {upsert:true, contentType:blob.type});
     if(up.error) throw up.error;
     var pub=sb.storage.from('waterfall-photos').getPublicUrl(filePath);
-    uploaded.push(pub.data.publicUrl);
-  }
+    return pub.data.publicUrl;
+  }));
   var all=keepUrls.concat(uploaded);
   await sb.from('waterfall_photos').delete().eq('log_id',logId).eq('user_id',ME.id);
   if(all.length){
@@ -1698,6 +1793,7 @@ async function saveLog(){
   try{
     if(!ME){openAuth();return;}
     var btn=document.getElementById('btn-save-log'); if(btn){btn.disabled=true;btn.textContent='Saving...';}
+    persistCurrentDraft();
     var ex=editingLogRowId?getLogByRowId(wfId,editingLogRowId):null;
     var isUpdate=!!(ex&&ex.rowId);
     var f=FALLS.find(function(x){return x.id===wfId;});
@@ -1727,6 +1823,7 @@ async function saveLog(){
     }
     await uploadPhotosForLog(rowId);
     await refreshAllData();
+    clearDraftFor(wfId);
     closeOv('ov-wf');
     editingLogRowId=null;
     toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added a new visit to your trail journal: '+(f?f.name:'this waterfall'));
@@ -1924,6 +2021,8 @@ async function doResetPassword(){
 async function doLogout(){
   await sb.auth.signOut();
   ME=null;DB={users:{},posts:{}};
+  SESSION_READY=true;
+  clearCachedSession();
   renderNav();renderList();renderJournal();renderExplore();FALLS.forEach(function(f){refreshMk(f.id);});toast('Signed out');
 }
 function renderNav(){
@@ -1968,6 +2067,10 @@ function renderNav(){
   renderLandingCtas();
 }
 function showPage(nm){
+  if(!SESSION_READY){
+    toast('Restoring your session...');
+    return false;
+  }
   if(nm === 'journal' && (!ME || !ME.is_pro)){
     upgradeToPro();
     return false;
@@ -2041,11 +2144,18 @@ document.addEventListener('DOMContentLoaded', async function() {
   var pub=document.getElementById('ptog-pub'),prv=document.getElementById('ptog-priv');
   if(pub)pub.addEventListener('click',function(){setPriv('public');});
   if(prv)prv.addEventListener('click',function(){setPriv('private');});
+  if(pub)pub.addEventListener('click',persistCurrentDraft);
+  if(prv)prv.addEventListener('click',persistCurrentDraft);
   // Photo input
   var pi=document.getElementById('photo-inp');
-  if(pi)pi.addEventListener('change',function(e){Array.from(e.target.files).slice(0,6).forEach(function(file){var previewUrl=URL.createObjectURL(file);pPh.push({url:previewUrl,file:file});renderPrev();});e.target.value='';});
+  if(pi)pi.addEventListener('change',function(e){Array.from(e.target.files).slice(0,6).forEach(function(file){var previewUrl=URL.createObjectURL(file);pPh.push({url:previewUrl,file:file});renderPrev();});persistCurrentDraft();e.target.value='';});
   // Delegated clicks
-  document.getElementById('prev-grid').addEventListener('click',function(e){var b=e.target.closest('.prm');if(b){pPh.splice(parseInt(b.dataset.i,10),1);renderPrev();}});
+  document.getElementById('prev-grid').addEventListener('click',function(e){var b=e.target.closest('.prm');if(b){pPh.splice(parseInt(b.dataset.i,10),1);renderPrev();persistCurrentDraft();}});
+  ['f-date','f-dur','f-cond','f-wat','f-loved','f-imp','f-tips'].forEach(function(id){
+    var input=document.getElementById(id);
+    if(input) input.addEventListener('input',persistCurrentDraft);
+    if(input) input.addEventListener('change',persistCurrentDraft);
+  });
   document.getElementById('ex-grid').addEventListener('click',function(e){var c=e.target.closest('.pcard');if(c)openPost(c.dataset.pid);});
   document.getElementById('wf-comm').addEventListener('click',function(e){var c=e.target.closest('.mpost[data-pid]');if(c){closeOv('ov-wf');openPost(c.dataset.pid);}});
   document.getElementById('post-bd').addEventListener('click',function(e){var b=e.target.closest('[data-goto]');if(b){closeOv('ov-post');openWF(b.dataset.goto);}});
@@ -2061,6 +2171,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         await refreshAllData();
       } else if(event==='SIGNED_OUT'){
         ME=null;DB={users:{},posts:{}};
+        SESSION_READY=true;
+        clearCachedSession();
         renderNav();renderList();renderExplore();renderJournal();
       }
     } catch(err){
