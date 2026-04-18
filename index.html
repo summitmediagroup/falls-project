@@ -1886,14 +1886,21 @@ async function uploadPhotosForLog(logId){
     if(item.file) newFiles.push(item.file);
     else if(item.url) keepUrls.push(item.url);
   });
-  var uploaded=await Promise.all(newFiles.map(async function(blob,i){
+  var uploaded=[];
+  for(var i=0;i<newFiles.length;i++){
+    var blob=newFiles[i];
     var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('quicktime','mov');
     var filePath=ME.id+'/'+logId+'/'+Date.now()+'_'+i+'.'+ext;
-    var up=await sb.storage.from('waterfall-photos').upload(filePath, blob, {upsert:true, contentType:blob.type});
+    var up=await Promise.race([
+      sb.storage.from('waterfall-photos').upload(filePath, blob, {upsert:true, contentType:blob.type}),
+      new Promise(function(_, reject){
+        setTimeout(function(){reject(new Error('A photo or video upload took too long. Please try again with fewer or smaller files.'));}, 45000);
+      })
+    ]);
     if(up.error) throw up.error;
     var pub=sb.storage.from('waterfall-photos').getPublicUrl(filePath);
-    return pub.data.publicUrl;
-  }));
+    uploaded.push(pub.data.publicUrl);
+  }
   var all=keepUrls.concat(uploaded);
   await sb.from('waterfall_photos').delete().eq('log_id',logId).eq('user_id',ME.id);
   if(all.length){
@@ -1905,9 +1912,24 @@ async function uploadPhotosForLog(logId){
 }
 
 async function saveLog(){
+  var btn=null;
+  var note=null;
+  var originalNote='';
+  function setSaveUi(label, helper){
+    if(btn){
+      btn.disabled=true;
+      btn.textContent=label;
+    }
+    if(note && helper){
+      note.textContent=helper;
+    }
+  }
   try{
     if(!ME){openAuth();return;}
-    var btn=document.getElementById('btn-save-log'); if(btn){btn.disabled=true;btn.textContent='Saving...';}
+    btn=document.getElementById('btn-save-log');
+    note=document.getElementById('wf-form-note');
+    originalNote=note?note.textContent:'';
+    setSaveUi('Saving...','Saving your trail notes...');
     persistCurrentDraft();
     var ex=editingLogRowId?getLogByRowId(wfId,editingLogRowId):null;
     var isUpdate=!!(ex&&ex.rowId);
@@ -1936,17 +1958,32 @@ async function saveLog(){
       if(ins.error) throw ins.error;
       rowId=ins.data.id;
     }
+    var mediaCount=(pPh||[]).filter(function(item){return !!mediaItem(item).file;}).length;
+    if(mediaCount){
+      setSaveUi('Uploading...','Uploading '+mediaCount+' photo'+(mediaCount===1?'':'s')+'/video'+(mediaCount===1?'':'s')+'...');
+    } else {
+      setSaveUi('Finishing...','Wrapping up your journal entry...');
+    }
     await uploadPhotosForLog(rowId);
-    await refreshAllData();
     clearDraftFor(wfId);
     closeOv('ov-wf');
     editingLogRowId=null;
     toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added a new visit to your trail journal: '+(f?f.name:'this waterfall'));
+    refreshAllData().then(function(){
+      renderNav();
+      renderList();
+      renderExplore();
+      renderJournal();
+    }).catch(function(err){
+      console.error(err);
+      toast('Saved, but the latest trail data is still catching up');
+    });
   } catch(err){
     console.error(err);
     toast(err && err.message ? err.message : 'Could not save your journal entry');
   } finally {
-    var btn2=document.getElementById('btn-save-log'); if(btn2){btn2.disabled=false;btn2.textContent='Save to Journal';}
+    if(btn){btn.disabled=false;btn.textContent='Save to Journal';}
+    if(note && originalNote){note.textContent=originalNote;}
   }
 }
 
