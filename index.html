@@ -197,6 +197,17 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .guide-note{margin-top:16px;font-size:.7rem;line-height:1.6;color:rgba(255,255,255,.28);}
 .about-link{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(200,150,60,.35);padding-bottom:1px;}
 .about-link:hover{color:var(--cream);border-bottom-color:rgba(240,232,216,.45);}
+.legal-bd{padding:26px 24px 24px;}
+.legal-eye{font-family:"Cormorant",serif;font-size:.54rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.legal-title{font-family:"Cormorant",serif;font-size:1.5rem;font-weight:300;color:var(--cream);margin-bottom:12px;}
+.legal-intro{font-size:.77rem;line-height:1.7;color:rgba(255,255,255,.66);margin-bottom:16px;}
+.legal-sec{margin-bottom:15px;}
+.legal-sec h3{font-family:"Cormorant",serif;font-size:1.04rem;font-weight:400;color:var(--cream);margin-bottom:6px;}
+.legal-sec p,.legal-sec li{font-size:.75rem;line-height:1.7;color:rgba(255,255,255,.68);}
+.legal-sec ul{padding-left:18px;display:flex;flex-direction:column;gap:6px;}
+.legal-note{margin-top:14px;font-size:.7rem;line-height:1.65;color:rgba(255,255,255,.48);}
+.footer-link{display:inline-flex;align-items:center;gap:10px;color:#dce7df;text-decoration:none;margin-left:18px;cursor:pointer;}
+.footer-link:hover{color:#fff3db;}
 #pg-explore{flex-direction:column;overflow-y:auto;}
 .ex-hero{height:380px;position:relative;overflow:hidden;flex-shrink:0;}
 .ex-hero-bg{position:absolute;inset:0;display:flex;}
@@ -471,6 +482,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .about-title{font-size:1.42rem;}
   .about-copy{font-size:.77rem;line-height:1.8;}
   .about-quote-text{font-size:1.08rem;}
+  .footer-link{margin-left:0;margin-top:10px;}
   .land-cta,.jmast,.jentries,.ex-sec,.ex-grid{padding-left:16px;padding-right:16px;}
   .jbadge-vault{grid-template-columns:1fr;}
   .badge-card{padding:11px;}
@@ -748,6 +760,86 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="guide-item"><strong>Fee</strong><p>This shows whether there is a parking fee, park entry fee, or no fee at all.</p></div>
     </div>
     <p class="guide-note">Trail ratings are a helpful guide, not a promise. Weather, water level, and trail conditions can make any hike feel easier or harder on a given day.</p>
+  </div>
+</div>
+</div>
+<div class="ov" id="ov-privacy">
+<div class="modal" id="m-privacy" style="width:680px;max-width:96vw">
+  <button class="mx" id="close-privacy">&times;</button>
+  <div class="legal-bd">
+    <div class="legal-eye">Privacy Policy</div>
+    <div class="legal-title">How The Falls Project handles your information</div>
+    <p class="legal-intro">The Falls Project collects only what it needs to run the site, save your journal, and help you use the map and community features. By using the site, you agree to this policy.</p>
+    <div class="legal-sec">
+      <h3>What we collect</h3>
+      <ul>
+        <li>Your account information, including your name and email address.</li>
+        <li>Your journal entries, ratings, notes, photos, and videos that you choose to upload.</li>
+        <li>Basic usage information needed to keep the site working, such as session data and saved waterfall preferences on your device.</li>
+        <li>Payment details are handled by Stripe. The Falls Project does not store your full payment card information.</li>
+      </ul>
+    </div>
+    <div class="legal-sec">
+      <h3>How we use it</h3>
+      <ul>
+        <li>To create and manage your account.</li>
+        <li>To save your private and public journal content.</li>
+        <li>To show public stories and community trail reports that you choose to share publicly.</li>
+        <li>To improve the site, respond to support requests, and keep the service secure.</li>
+      </ul>
+    </div>
+    <div class="legal-sec">
+      <h3>Public vs. private content</h3>
+      <p>If you mark a journal entry as public, it may appear in community stories and waterfall reports for other users to read. If you mark an entry as private, it is intended to stay visible only to you inside your account.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Your media and submissions</h3>
+      <p>Please upload only photos, videos, and written content that you own or have permission to share. Do not upload private, unlawful, or harmful content.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Contact</h3>
+      <p>Questions about privacy can be sent to <a href="mailto:hello@thefallsproject.com" class="about-link">hello@thefallsproject.com</a>.</p>
+    </div>
+    <p class="legal-note">This is a strong launch-ready privacy baseline, but it is still wise to have a licensed attorney review it as the business grows.</p>
+  </div>
+</div>
+</div>
+<div class="ov" id="ov-terms">
+<div class="modal" id="m-terms" style="width:700px;max-width:96vw">
+  <button class="mx" id="close-terms">&times;</button>
+  <div class="legal-bd">
+    <div class="legal-eye">Terms of Use</div>
+    <div class="legal-title">Use the map, enjoy the trails, and hike responsibly</div>
+    <p class="legal-intro">By using The Falls Project, you agree to these terms. The site is offered as an informational and community tool for finding waterfalls, saving visits, and sharing trail experiences.</p>
+    <div class="legal-sec">
+      <h3>Use at your own risk</h3>
+      <p>Trail conditions, water levels, weather, access rules, parking, fees, and land status can change at any time. While The Falls Project tries its best to keep information accurate, public-access, and helpful for members, it does not guarantee that every location is safe, open, legal to enter, or appropriate for every person. You are responsible for your own decisions, safety, group, children, pets, gear, route choices, and conduct in the outdoors.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Community content</h3>
+      <p>User stories, ratings, tips, and media reflect the views and experiences of the person who posted them. They are not professional advice and may not match current conditions.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Subscriptions</h3>
+      <p>Paid features are billed through Stripe on a recurring basis unless canceled. Introductory offers, founder perks, and pricing language shown on the site apply only as stated at the time of signup.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Content standards</h3>
+      <ul>
+        <li>Do not upload content you do not own or have permission to share.</li>
+        <li>Do not post unlawful, threatening, abusive, invasive, or misleading content.</li>
+        <li>The Falls Project may remove content or accounts that violate these standards.</li>
+      </ul>
+    </div>
+    <div class="legal-sec">
+      <h3>Liability</h3>
+      <p>To the fullest extent allowed by law, The Falls Project is not responsible for injuries, accidents, property loss, access disputes, wildlife encounters, weather issues, navigation mistakes, or any other problems that happen before, during, or after visiting a location found on the site.</p>
+    </div>
+    <div class="legal-sec">
+      <h3>Contact</h3>
+      <p>Questions, removal requests, or support issues can be sent to <a href="mailto:hello@thefallsproject.com" class="about-link">hello@thefallsproject.com</a>.</p>
+    </div>
+    <p class="legal-note">This is a practical launch-ready baseline, but it is still smart to have a licensed attorney review these terms before scale, partnerships, or merch expansion.</p>
   </div>
 </div>
 </div>
@@ -1395,14 +1487,8 @@ async function hydrateSession(){
     cacheSessionSnapshot();
     SESSION_READY=true;
   } catch(err){
-    var cached=restoreCachedSession();
-    if(cached){
-      ME=cached;
-      SESSION_READY=true;
-      console.warn('Using cached session after auth hiccup');
-      return;
-    }
     ME=null;
+    clearCachedSession();
     SESSION_READY=true;
     console.error('hydrateSession failed:',err);
   }
@@ -2170,7 +2256,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   var nm=document.getElementById('btn-near-me');if(nm)nm.addEventListener('click',centerOnUser);
   var tg=document.getElementById('btn-trail-guide');if(tg)tg.addEventListener('click',function(){openOv('ov-guide');});
   // Modal closes
-  ['wf','auth','post','guide'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
+  ['wf','auth','post','guide','privacy','terms'].forEach(function(n){var c=document.getElementById('close-'+n);if(c)c.addEventListener('click',function(){closeOv('ov-'+n);});var o=document.getElementById('ov-'+n);if(o)o.addEventListener('click',function(e){if(e.target===o)closeOv('ov-'+n);});});
   var bwf=document.getElementById('back-wf');if(bwf)bwf.addEventListener('click',function(){closeOv('ov-wf');});
   // Auth toggles + login/signup
   var atli=document.getElementById('at-li'),atsu=document.getElementById('at-su');
@@ -2238,11 +2324,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 (async function(){
   try {
     await loadFallsFromSupabase();
-    var cached=restoreCachedSession();
-    if(cached){
-      ME=cached;
-      renderNav();
-    }
     await hydrateSession();
     renderNav();
     await refreshAllData();
@@ -2284,14 +2365,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     ">
     <div>Created by <span style="font-weight:600;">Summit Media Group</span></div>
   </a>
-  <a href="mailto:hello@thefallsproject.com" style="
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    color:#dce7df;
-    text-decoration:none;
-    margin-left:18px;
-  ">
+  <a href="mailto:hello@thefallsproject.com" class="footer-link">
     <span style="
       width:24px;
       height:24px;
@@ -2306,7 +2380,42 @@ document.addEventListener('DOMContentLoaded', async function() {
     ">@</span>
     <div>Contact <span style="font-weight:600;">hello@thefallsproject.com</span></div>
   </a>
+  <button id="footer-privacy" class="footer-link" style="background:none;border:none;padding:0;">
+    <span style="
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      border:1px solid rgba(200,150,60,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(200,150,60,.92);
+      font-size:0.78rem;
+      flex:0 0 auto;
+    ">i</span>
+    <div>Privacy Policy</div>
+  </button>
+  <button id="footer-terms" class="footer-link" style="background:none;border:none;padding:0;">
+    <span style="
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      border:1px solid rgba(200,150,60,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(200,150,60,.92);
+      font-size:0.78rem;
+      flex:0 0 auto;
+    ">§</span>
+    <div>Terms of Use</div>
+  </button>
 </footer>
+
+<script>
+document.getElementById('footer-privacy').addEventListener('click',function(){openOv('ov-privacy');});
+document.getElementById('footer-terms').addEventListener('click',function(){openOv('ov-terms');});
+</script>
 
 
 
