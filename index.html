@@ -545,7 +545,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       </div>
       <p class="hero-price-note"><strong>Introductory price:</strong> $3.99/month. Early members keep this price for life unless they cancel.</p>
       <div class="trust-strip">
-        <div class="trust-pill"><span class="trust-num" id="trust-falls">122</span> waterfalls mapped</div>
+        <div class="trust-pill"><span class="trust-num" id="trust-falls">...</span> waterfalls mapped</div>
         <div class="trust-pill"><span class="trust-num" id="trust-stories">0</span> real trail reports</div>
         <div class="trust-pill">Map browsing is free</div>
       </div>
@@ -687,7 +687,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="fg"><label>Tips for Future Hikers</label><textarea id="f-tips" placeholder="Best season, gear, hidden spots..." style="min-height:54px"></textarea></div>
       <div class="fg"><label>Photos &amp; Video</label>
         <div class="photo-zone"><input type="file" id="photo-inp" accept="image/*,video/*" multiple>
-          <p>&#128247; Tap to add photos or short trail clips</p>
+          <p>&#128247; Tap to add photos or short trail clips. Short mobile-friendly uploads work best.</p>
         </div>
         <div class="prev-grid" id="prev-grid"></div>
       </div>
@@ -926,6 +926,9 @@ var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
+var MAX_IMAGE_UPLOAD_BYTES=8*1024*1024;
+var MAX_VIDEO_UPLOAD_BYTES=35*1024*1024;
+var MAX_IMAGE_DIMENSION=1800;
 var SAVED_KEY='falls_saved_to_visit_v1';
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
 var SESSION_CACHE_KEY='falls_session_cache_v1';
@@ -1296,6 +1299,39 @@ function mediaIsVideo(src){
 function mediaItem(raw){
   if(raw && typeof raw==='object' && raw.url) return raw;
   return {url:String(raw||''),file:null};
+}
+async function prepareUploadFile(file){
+  if(!file) return file;
+  if(/^video\//.test(file.type||'')){
+    if(file.size>MAX_VIDEO_UPLOAD_BYTES){
+      throw new Error('Videos need to be short clips under 35 MB for now.');
+    }
+    return file;
+  }
+  if(!/^image\//.test(file.type||'')) return file;
+  if(file.size<=MAX_IMAGE_UPLOAD_BYTES && typeof createImageBitmap!=='function'){
+    return file;
+  }
+  var bitmap=await createImageBitmap(file);
+  var width=bitmap.width||0;
+  var height=bitmap.height||0;
+  var scale=Math.min(1,MAX_IMAGE_DIMENSION/Math.max(width,height,1));
+  var targetW=Math.max(1,Math.round(width*scale));
+  var targetH=Math.max(1,Math.round(height*scale));
+  var canvas=document.createElement('canvas');
+  canvas.width=targetW;
+  canvas.height=targetH;
+  var ctx=canvas.getContext('2d');
+  ctx.drawImage(bitmap,0,0,targetW,targetH);
+  if(bitmap.close) bitmap.close();
+  var quality=file.size>MAX_IMAGE_UPLOAD_BYTES?0.74:0.82;
+  var blob=await new Promise(function(resolve,reject){
+    canvas.toBlob(function(out){
+      if(out) resolve(out);
+      else reject(new Error('Could not prepare this photo for upload.'));
+    },'image/jpeg',quality);
+  });
+  return new File([blob],(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'});
 }
 function mediaThumbMarkup(src, alt, cls){
   if(mediaIsVideo(src)){
@@ -1888,7 +1924,7 @@ async function uploadPhotosForLog(logId){
   });
   var uploaded=[];
   for(var i=0;i<newFiles.length;i++){
-    var blob=newFiles[i];
+    var blob=await prepareUploadFile(newFiles[i]);
     var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('quicktime','mov');
     var filePath=ME.id+'/'+logId+'/'+Date.now()+'_'+i+'.'+ext;
     var up=await Promise.race([
@@ -2320,7 +2356,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   if(prv)prv.addEventListener('click',persistCurrentDraft);
   // Photo input
   var pi=document.getElementById('photo-inp');
-  if(pi)pi.addEventListener('change',function(e){Array.from(e.target.files).slice(0,6).forEach(function(file){var previewUrl=URL.createObjectURL(file);pPh.push({url:previewUrl,file:file});renderPrev();});persistCurrentDraft();e.target.value='';});
+  if(pi)pi.addEventListener('change',function(e){
+    Array.from(e.target.files).slice(0,6).forEach(function(file){
+      if(/^video\//.test(file.type||'') && file.size>MAX_VIDEO_UPLOAD_BYTES){
+        toast('That video is too large right now. Try a short clip under 35 MB.');
+        return;
+      }
+      var previewUrl=URL.createObjectURL(file);
+      pPh.push({url:previewUrl,file:file});
+      renderPrev();
+    });
+    persistCurrentDraft();
+    e.target.value='';
+  });
   // Delegated clicks
   document.getElementById('prev-grid').addEventListener('click',function(e){var b=e.target.closest('.prm');if(b){pPh.splice(parseInt(b.dataset.i,10),1);renderPrev();persistCurrentDraft();}});
   ['f-date','f-dur','f-cond','f-wat','f-loved','f-imp','f-tips'].forEach(function(id){
