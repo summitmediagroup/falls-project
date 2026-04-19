@@ -256,8 +256,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .badge-fallback{display:none;width:100%;height:100%;align-items:center;justify-content:center;}
 .jbadge-pill-copy{min-width:0;}
 .jbadge-pill-k{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:3px;}
-.jbadge-pill-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;}
+.jbadge-pill-v{font-size:.78rem;color:var(--cream);font-weight:600;line-height:1.2;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .jbadge-pill-note{font-size:.65rem;color:rgba(255,255,255,.36);line-height:1.4;margin-top:2px;}
+.badge-new{display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;background:rgba(200,150,60,.16);border:1px solid rgba(200,150,60,.34);color:var(--gold);font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;box-shadow:0 0 0 1px rgba(200,150,60,.05),0 0 18px rgba(200,150,60,.12);}
 .badge-mark{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(215,196,144,.55),rgba(35,56,43,.95));color:#f0dfb0;font-family:"Cormorant",serif;font-size:1rem;font-weight:700;letter-spacing:.05em;}
 .badge-mark[data-tier="first"]{background:radial-gradient(circle at 30% 30%,rgba(157,193,221,.45),rgba(42,67,81,.95));}
 .badge-mark[data-tier="scout"]{background:radial-gradient(circle at 30% 30%,rgba(165,191,148,.45),rgba(34,57,45,.95));}
@@ -291,7 +292,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .badge-card-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;background:transparent;}
 .badge-card-copy{min-width:0;}
 .badge-card-track{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px;}
-.badge-card-name{font-family:"Cormorant",serif;font-size:1.05rem;color:var(--cream);margin-bottom:5px;}
+.badge-card-name{font-family:"Cormorant",serif;font-size:1.05rem;color:var(--cream);margin-bottom:5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .badge-card-desc{font-size:.72rem;line-height:1.55;color:rgba(255,255,255,.6);margin-bottom:7px;}
 .badge-card-progress{font-size:.68rem;line-height:1.45;color:rgba(244,231,192,.84);}
 .badge-card.locked .badge-card-progress{color:rgba(255,255,255,.52);}
@@ -1518,6 +1519,58 @@ var BADGE_ART={
   hunter:'badge-waterfall-hunter.jpg',
   keeper:'badge-cascade-keeper.jpg'
 };
+var BADGE_UNLOCKS_KEY='falls_badge_unlocks_v1';
+function getBadgeUnlockState(userId){
+  if(!userId) return {};
+  try{
+    var raw=localStorage.getItem(BADGE_UNLOCKS_KEY);
+    var all=raw?JSON.parse(raw):{};
+    return all[userId]||{};
+  } catch(err){
+    console.error('badge unlock state load failed:',err);
+    return {};
+  }
+}
+function setBadgeUnlockState(userId, state){
+  if(!userId) return;
+  try{
+    var raw=localStorage.getItem(BADGE_UNLOCKS_KEY);
+    var all=raw?JSON.parse(raw):{};
+    all[userId]=state||{};
+    localStorage.setItem(BADGE_UNLOCKS_KEY,JSON.stringify(all));
+  } catch(err){
+    console.error('badge unlock state save failed:',err);
+  }
+}
+function syncBadgeUnlockState(userId, badges){
+  var state=getBadgeUnlockState(userId);
+  var changed=false;
+  (badges||[]).forEach(function(badge){
+    if(badge && badge.unlocked && !state[badge.key]){
+      state[badge.key]=Date.now();
+      changed=true;
+    }
+  });
+  if(changed) setBadgeUnlockState(userId,state);
+  return state;
+}
+function badgeIsNew(badge, unlockState){
+  if(!badge || !badge.unlocked || !unlockState) return false;
+  var ts=unlockState[badge.key];
+  if(!ts) return false;
+  return (Date.now()-ts) < (7*24*60*60*1000);
+}
+function sortEarnedBadgesForStrip(badges, unlockState){
+  return (badges||[]).slice().sort(function(a,b){
+    var aNew=badgeIsNew(a,unlockState)?1:0;
+    var bNew=badgeIsNew(b,unlockState)?1:0;
+    if(aNew!==bNew) return bNew-aNew;
+    var aTs=unlockState[a.key]||0;
+    var bTs=unlockState[b.key]||0;
+    if(aTs!==bTs) return bTs-aTs;
+    return 0;
+  });
+}
 function getBadgeVault(logCount, isFounder){
   return [
     (isFounder
@@ -1549,12 +1602,15 @@ function badgeProgressPct(badge, logCount){
   if(badge.key==='founder') return badge.unlocked?100:0;
   return Math.max(0,Math.min(100,Math.round((logCount/Math.max(badge.threshold||1,1))*100)));
 }
-function makeBadgePill(badge, logCount){
-  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeCardArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
+function badgeNewMarkup(badge, unlockState){
+  return badgeIsNew(badge,unlockState)?'<span class="badge-new">New</span>':'';
 }
-function makeVaultBadgeCard(badge, logCount, nextBadgeKey){
+function makeBadgePill(badge, logCount, unlockState){
+  return '<div class="jbadge-pill'+(badge.unlocked?'':' locked')+'"><div class="jbadge-pill-art">'+badgeCardArt(badge)+'</div><div class="jbadge-pill-copy"><div class="jbadge-pill-k">'+esc(badge.track)+'</div><div class="jbadge-pill-v">'+esc(badge.label)+badgeNewMarkup(badge,unlockState)+'</div><div class="jbadge-pill-note">'+esc(badgeProgressLine(badge,logCount))+'</div></div></div>';
+}
+function makeVaultBadgeCard(badge, logCount, nextBadgeKey, unlockState){
   var cls='badge-card'+(badge.unlocked?'':' locked')+(nextBadgeKey && badge.key===nextBadgeKey?' next-target':'');
-  return '<div class="'+cls+'"><div class="badge-card-art">'+badgeCardArt(badge)+'</div><div class="badge-card-copy"><div class="badge-card-track">'+esc(badge.track)+'</div><div class="badge-card-name">'+esc(badge.label)+'</div><div class="badge-card-desc">'+esc(badge.desc)+'</div><div class="badge-card-progress">'+esc(badgeProgressLine(badge,logCount))+'</div>'+(badge.key==='founder'?'':'<div class="badge-card-bar"><span style="width:'+badgeProgressPct(badge,logCount)+'%"></span></div>')+'</div></div>';
+  return '<div class="'+cls+'"><div class="badge-card-art">'+badgeCardArt(badge)+'</div><div class="badge-card-copy"><div class="badge-card-track">'+esc(badge.track)+'</div><div class="badge-card-name">'+esc(badge.label)+badgeNewMarkup(badge,unlockState)+'</div><div class="badge-card-desc">'+esc(badge.desc)+'</div><div class="badge-card-progress">'+esc(badgeProgressLine(badge,logCount))+'</div>'+(badge.key==='founder'?'':'<div class="badge-card-bar"><span style="width:'+badgeProgressPct(badge,logCount)+'%"></span></div>')+'</div></div>';
 }
 function makeBadgeMarkup(badge, tone){
   if(!badge) return '';
@@ -1614,10 +1670,16 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
+  var cached=restoreCachedSession();
   try{
     var s=await withTimeout(sb.auth.getSession(),12000,'Session check timed out');
     var user=s.data&&s.data.session&&s.data.session.user;
     if(!user){
+      if(cached){
+        ME=cached;
+        SESSION_READY=true;
+        return;
+      }
       ME=null;
       clearCachedSession();
       SESSION_READY=true;
@@ -1637,9 +1699,14 @@ async function hydrateSession(){
     cacheSessionSnapshot();
     SESSION_READY=true;
   } catch(err){
+    if(cached){
+      ME=cached;
+      SESSION_READY=true;
+      console.error('hydrateSession recovered from cache:',err);
+      return;
+    }
     ME=null;
     clearCachedSession();
-    clearSupabaseAuthState();
     SESSION_READY=true;
     console.error('hydrateSession failed:',err);
   }
@@ -2309,10 +2376,17 @@ function renderJournal(){
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
   var avg=cnt?sum/cnt:0;
   var badgeVault=getBadgeVault(vis,ME.is_founding_explorer);
+  var unlockState=syncBadgeUnlockState(ME.id,badgeVault);
   var earnedBadges=badgeVault.filter(function(b){return b.unlocked;});
   var nextBadge=badgeVault.find(function(b){return !b.unlocked && b.key!=='founder';});
-  var badgeStrip=earnedBadges.slice(0,3).map(function(b){return makeBadgePill(b,vis);}).join('');
-  var badgeCards=badgeVault.map(function(b){return makeVaultBadgeCard(b,vis,nextBadge&&nextBadge.key);}).join('');
+  var memberBadge=earnedBadges.find(function(b){return b.key==='founder' || b.key==='member';});
+  var activityBadges=sortEarnedBadgesForStrip(earnedBadges.filter(function(b){return b.track==='Activity Badge';}),unlockState);
+  var badgeStripList=[];
+  if(memberBadge) badgeStripList.push(memberBadge);
+  if(activityBadges[0]) badgeStripList.push(activityBadges[0]);
+  if(activityBadges[1]) badgeStripList.push(activityBadges[1]);
+  var badgeStrip=badgeStripList.map(function(b){return makeBadgePill(b,vis,unlockState);}).join('');
+  var badgeCards=badgeVault.map(function(b){return makeVaultBadgeCard(b,vis,nextBadge&&nextBadge.key,unlockState);}).join('');
 
   mast.innerHTML='<div class="jmast-eye">Personal Record</div>'
     +'<h1>'+esc(ME.name)+'&#39;s Trail Journal</h1>'
