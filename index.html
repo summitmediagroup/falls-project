@@ -329,6 +329,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wf-back{position:absolute;top:11px;left:11px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.72);padding:6px 10px;font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;z-index:5;border-radius:2px;}
 .wf-back:hover{background:rgba(200,150,60,.22);color:var(--gold);}
 .wf-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.68) saturate(.8);}
+.wf-credit{position:absolute;right:14px;bottom:12px;z-index:2;background:rgba(8,14,11,.56);border:1px solid rgba(255,255,255,.08);padding:4px 8px;font-size:.56rem;letter-spacing:.04em;color:rgba(255,255,255,.78);backdrop-filter:blur(6px);}
+.wf-credit a{color:var(--cream);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.22);}
+.wf-credit a:hover{color:var(--gold);border-bottom-color:rgba(200,150,60,.38);}
 .wf-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(19,32,25,.94) 0%,rgba(19,32,25,.22) 60%,transparent 100%);}
 .wf-info{position:absolute;bottom:16px;left:20px;right:48px;}
 .wf-reg{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
@@ -648,6 +651,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   <button class="mx" id="close-wf">&times;</button>
   <button class="wf-back" id="back-wf">Back</button>
   <div class="wf-hero"><div class="wf-bg" id="wf-bg"></div><div class="wf-grad"></div>
+    <div class="wf-credit" id="wf-credit" style="display:none"></div>
     <div class="wf-info"><div class="wf-reg" id="wf-reg"></div><div class="wf-nm" id="wf-nm"></div></div>
   </div>
   <div class="wf-body">
@@ -867,6 +871,48 @@ function heroFor(id) {
   var keys = ["p1","p2","p3","p4","p5"], c = 0;
   for (var i = 0; i < id.length; i++) c += id.charCodeAt(i);
   return PH[keys[c % 5]];
+}
+function fallHero(f) {
+  if(f && typeof f==='object'){
+    var custom=f.image_url||f.image||f.hero_image||f.hero||'';
+    if(custom) return custom;
+    return heroFor(f.id||'');
+  }
+  return heroFor(String(f||''));
+}
+function publicHeroSubmissionForFall(fallId){
+  var posts=Object.values((DB&&DB.posts)||{}).filter(function(p){
+    return p && p.fallId===fallId && p.privacy==='public' && p.photos && p.photos.length;
+  }).sort(function(a,b){
+    return (b.ts||0)-(a.ts||0);
+  });
+  return posts[0]||null;
+}
+function handleForUsername(name){
+  var base=String(name||'explorer').trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
+  return '@'+(base||'explorer');
+}
+function fallHeroMeta(f){
+  if(!f) return {src:heroFor('fallback'),creditHtml:''};
+  var custom=f.image_url||f.image||f.hero_image||f.hero||'';
+  var credit=String(f.image_credit||f.credit||f.image_source||'').trim();
+  var creditUrl=String(f.image_credit_url||f.credit_url||f.image_source_url||'').trim();
+  if(custom){
+    return {
+      src:custom,
+      creditHtml:credit
+        ? ('Image courtesy of '+(creditUrl?'<a href="'+esc(creditUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(credit)+'</a>':esc(credit)))
+        : ''
+    };
+  }
+  var submission=publicHeroSubmissionForFall(f.id);
+  if(submission && submission.photos && submission.photos[0]){
+    return {
+      src:submission.photos[0],
+      creditHtml:'Submitted by '+esc(handleForUsername(submission.authorName||'Explorer'))
+    };
+  }
+  return {src:heroFor(f.id||''),creditHtml:''};
 }
 
 var FALLS_FALLBACK=[
@@ -1225,7 +1271,9 @@ function normalizeFallRow(row){
     type:String(pickFirst(row,['type','fall_type','category'])||'Waterfall').trim(),
     trail:formatTrail(pickFirst(row,['trail','trail_length','distance','hike_distance']))||'Unknown',
     fee:String(pickFirst(row,['fee','fees','parking_fee'])||'Free').trim(),
-    desc:String(pickFirst(row,['desc','description','notes'])||'A beautiful waterfall waiting to be explored.').trim()
+    desc:String(pickFirst(row,['desc','description','notes'])||'A beautiful waterfall waiting to be explored.').trim(),
+    summary:String(pickFirst(row,['summary','review_summary','field_notes','why_go','overview'])||'').trim(),
+    image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim()
   };
 }
 function rowFlagValue(row, keys){
@@ -1280,7 +1328,12 @@ function mergeFalls(rows){
 }
 async function loadFallsFromSupabase(){
   try{
-    var res=await sbPublic.from('waterfalls').select('*').order('name',{ascending:true});
+    var res=await Promise.race([
+      sbPublic.from('waterfalls').select('*').order('name',{ascending:true}),
+      new Promise(function(_, reject){
+        setTimeout(function(){reject(new Error('waterfalls load timed out'));}, 12000);
+      })
+    ]);
     if(res.error){
       console.error('waterfalls load failed:',res.error);
       FALLS=FALLS_FALLBACK.slice();
@@ -1347,7 +1400,7 @@ async function prepareUploadFile(file){
 }
 function mediaThumbMarkup(src, alt, cls){
   if(mediaIsVideo(src)){
-    return '<video class="'+esc(cls||'')+'" src="'+esc(src)+'" muted playsinline preload="metadata"></video>';
+    return '<video class="'+esc(cls||'')+'" src="'+esc(src)+'" muted playsinline autoplay loop preload="metadata"></video>';
   }
   return '<img class="'+esc(cls||'')+'" src="'+esc(src)+'" alt="'+esc(alt||'')+'">';
 }
@@ -1754,7 +1807,7 @@ function renderList(){
     var v=isVis(f.id),log=getLog(f.id);
     var saved=isSaved(f.id);
     var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
-    var thumb=log&&log.photos&&log.photos[0]?mediaThumbMarkup(log.photos[0],'','fi-thumb'):'<img class="fi-thumb" src="'+heroFor(f.id)+'" style="opacity:.3">';
+    var thumb=log&&log.photos&&log.photos[0]?mediaThumbMarkup(log.photos[0],'','fi-thumb'):'<img class="fi-thumb" src="'+fallHeroMeta(f).src+'" style="opacity:.3">';
     var near=USER_POS?'<span class="chip">'+esc(milesBetween(USER_POS.lat,USER_POS.lng,f.lat,f.lng).toFixed(0)+' mi away')+'</span>':'';
     var d=document.createElement('div');d.className='fi'+(v?' done':'');
     d.innerHTML='<div class="fi-body"><div class="fi-name">'+esc(f.name)+'</div><div class="fi-reg">'+esc(f.region)+'</div>'
@@ -1803,9 +1856,11 @@ function trailMoodCopy(f){
 function buildWaterfallOverview(f){
   var subject=isBeyondTheFallsStop(f)?'water-side stop':'waterfall';
   var sceneType=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
+  var summary=String(f.summary||'').trim();
+  var primaryCopy=summary || f.desc || ('A beautiful '+subject+' waiting to be explored.');
   return {
     title:isBeyondTheFallsStop(f)?'Why explorers stop here':'Why explorers go',
-    copy:(f.desc||('A beautiful '+subject+' waiting to be explored.'))+' It is the kind of stop that can turn a regular day outside into something memorable.',
+    copy:primaryCopy+(summary?'':' It is the kind of stop that can turn a regular day outside into something memorable.'),
     fit:journeyFitCopy(f),
     scene:'A '+sceneType+' with '+(f.height||'an unforgettable view')+' and a '+(f.trail||'varied')+' round trip.',
     note:trailMoodCopy(f)
@@ -1841,7 +1896,18 @@ function openWF(id,rowId){
     openWF(id);
     toast(saved?'Saved to your list':'Removed from saved');
   });
-  document.getElementById('wf-bg').style.backgroundImage='url('+heroFor(id)+')';
+  var heroMeta=fallHeroMeta(f);
+  document.getElementById('wf-bg').style.backgroundImage='url('+heroMeta.src+')';
+  var wfCredit=document.getElementById('wf-credit');
+  if(wfCredit){
+    if(heroMeta.creditHtml){
+      wfCredit.innerHTML=heroMeta.creditHtml;
+      wfCredit.style.display='block';
+    } else {
+      wfCredit.innerHTML='';
+      wfCredit.style.display='none';
+    }
+  }
   var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
   document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span><span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
   var pubs=Object.values(DB.posts).filter(function(p){return p.fallId===id&&p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;}).slice(0,3);
@@ -2073,7 +2139,8 @@ function renderExplore(){
   if(exSub) exSub.textContent='Real experiences, honest conditions, and trail wisdom from explorers across the map.';
   if(!posts.length){grid.innerHTML='<div class="ex-empty"><h3>No reports yet</h3><p>Be the first to share your waterfall adventure.</p></div>';return;}
   grid.innerHTML=posts.map(function(p){
-    var hero=p.photos&&p.photos[0]?p.photos[0]:heroFor(p.fallId||'');
+    var fall=FALLS.find(function(x){return x.id===p.fallId;});
+    var hero=p.photos&&p.photos[0]?p.photos[0]:fallHeroMeta(fall||{id:p.fallId||''}).src;
     var stars=p.rating?'&#9733;'.repeat(p.rating):'';
     var base=(p.loved||p.tips||p.improve||'An adventure in the Georgia mountains');
     var exc=esc(base.length>100?base.slice(0,100)+'...':base);
@@ -2086,7 +2153,8 @@ function openPost(pid){
   document.getElementById('ph-wf').textContent=p.fallRegion||'Georgia';
   document.getElementById('ph-title').textContent=p.fallName||'Waterfall Visit';
   var hbg=document.getElementById('post-bg');
-  hbg.innerHTML=p.photos&&p.photos.length?p.photos.slice(0,3).map(function(x){return mediaIsVideo(x)?'<video src="'+esc(x)+'" muted playsinline autoplay loop preload="metadata"></video>':'<img src="'+esc(x)+'" alt="">';}).join(''):'<img src="'+heroFor(p.fallId||'')+'" alt="" style="width:100%;height:100%;object-fit:cover">';
+  var postFall=FALLS.find(function(x){return x.id===p.fallId;});
+  hbg.innerHTML=p.photos&&p.photos.length?p.photos.slice(0,3).map(function(x){return mediaIsVideo(x)?'<video src="'+esc(x)+'" muted playsinline autoplay loop preload="metadata"></video>':'<img src="'+esc(x)+'" alt="">';}).join(''):'<img src="'+fallHeroMeta(postFall||{id:p.fallId||''}).src+'" alt="" style="width:100%;height:100%;object-fit:cover">';
   var stats=[
     p.rating?'<div class="pstat"><div class="pstat-v" style="color:var(--gold)">'+'&#9733;'.repeat(p.rating)+'</div><div class="pstat-k">Rating</div></div>':'',
     p.duration?'<div class="pstat"><div class="pstat-v">'+esc(p.duration)+'</div><div class="pstat-k">Duration</div></div>':'',
@@ -2168,7 +2236,7 @@ function renderJournal(){
   ent.innerHTML='';
   logs.forEach(function(e){
     var f=FALLS.find(function(x){return x.id===e.id;})||{name:'Waterfall',region:''};
-    var hero=e.log.photos&&e.log.photos[0]?e.log.photos[0]:heroFor(e.id);
+    var hero=e.log.photos&&e.log.photos[0]?e.log.photos[0]:fallHeroMeta(FALLS.find(function(x){return x.id===e.id;})||{id:e.id}).src;
     var exc=e.log.loved||e.log.tips||e.log.improve||'';
     var d=document.createElement('div');d.className='je';
     d.innerHTML='<div class="je-img">'+mediaThumbMarkup(hero,'','')+'</div><div class="je-body"><div class="je-eye">'+esc(f.region)+'</div><div class="je-name">'+esc(f.name)+'</div>'+(exc?'<div class="je-exc">'+esc(exc.slice(0,120))+'</div>':'')+'<div class="je-meta">'+(e.log.date?'<span>'+esc(e.log.date)+'</span>':'')+(e.log.duration?'<span>&middot; '+esc(e.log.duration)+'</span>':'')+(e.log.rating?'<span>&middot; '+'&#9733;'.repeat(e.log.rating)+'</span>':'')+'<span class="pbadge '+(e.log.privacy==='public'?'pub':'priv')+'">'+(e.log.privacy==='public'?'Public':'Private')+'</span></div></div>';
@@ -2430,6 +2498,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 (async function(){
   try {
+    renderNav();
+    renderList();
+    renderExplore();
+    renderJournal();
     await loadFallsFromSupabase();
     await hydrateSession();
     renderNav();
