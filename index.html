@@ -325,14 +325,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .mx{position:absolute;top:11px;right:11px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);width:27px;height:27px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:5;border-radius:2px;}
 .mx:hover{background:rgba(200,150,60,.22);color:var(--gold);}
 #m-wf{width:570px;}
-.wf-hero{height:210px;position:relative;overflow:hidden;background:var(--raised);}
+.wf-hero{height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(26,37,31,.98),rgba(39,56,47,.98));}
 .wf-back{position:absolute;top:11px;left:11px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.72);padding:6px 10px;font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;z-index:5;border-radius:2px;}
 .wf-back:hover{background:rgba(200,150,60,.22);color:var(--gold);}
-.wf-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.68) saturate(.8);}
+.wf-bg{position:absolute;inset:0;background-size:contain;background-repeat:no-repeat;background-position:center center;filter:brightness(.96) saturate(.98);}
 .wf-credit{position:absolute;right:14px;bottom:12px;z-index:2;background:rgba(8,14,11,.56);border:1px solid rgba(255,255,255,.08);padding:4px 8px;font-size:.56rem;letter-spacing:.04em;color:rgba(255,255,255,.78);backdrop-filter:blur(6px);}
 .wf-credit a{color:var(--cream);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.22);}
 .wf-credit a:hover{color:var(--gold);border-bottom-color:rgba(200,150,60,.38);}
-.wf-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(19,32,25,.94) 0%,rgba(19,32,25,.22) 60%,transparent 100%);}
+.wf-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(19,32,25,.58) 0%,rgba(19,32,25,.14) 26%,rgba(19,32,25,0) 56%);pointer-events:none;}
 .wf-info{position:absolute;bottom:16px;left:20px;right:48px;}
 .wf-reg{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
 .wf-nm{font-family:"Cormorant",serif;font-size:1.6rem;font-weight:300;color:var(--white);line-height:1.1;}
@@ -881,8 +881,9 @@ function fallHero(f) {
   return heroFor(String(f||''));
 }
 function publicHeroSubmissionForFall(fallId){
+  fallId=canonicalFallId(fallId);
   var posts=Object.values((DB&&DB.posts)||{}).filter(function(p){
-    return p && p.fallId===fallId && p.privacy==='public' && p.photos && p.photos.length;
+    return p && canonicalFallId(p.fallId)===fallId && p.privacy==='public' && p.photos && p.photos.length;
   }).sort(function(a,b){
     return (b.ts||0)-(a.ts||0);
   });
@@ -979,6 +980,7 @@ var sbPublic = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
 });
 
 var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
+var FALL_ALIASES={};
 var MAX_IMAGE_UPLOAD_BYTES=8*1024*1024;
 var MAX_VIDEO_UPLOAD_BYTES=35*1024*1024;
 var MAX_IMAGE_DIMENSION=1800;
@@ -990,8 +992,18 @@ var AUTH_RETURN={page:'land',wfId:null,rowId:null};
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
 function mkid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function canonicalFallId(id){
+  var current=String(id||'');
+  var seen={};
+  while(current && FALL_ALIASES[current] && !seen[current]){
+    seen[current]=true;
+    current=FALL_ALIASES[current];
+  }
+  return current||String(id||'');
+}
 function getLogs(id){
-  return ME?(((DB.users[ME.id]||{}).logs||{})[id]||[]):[];
+  var fallId=canonicalFallId(id);
+  return ME?(((DB.users[ME.id]||{}).logs||{})[fallId]||[]):[];
 }
 function isVis(id){return !!getLogs(id).length;}
 function getLog(id){
@@ -1205,6 +1217,7 @@ function setSavedFalls(list){
 }
 function isSaved(id){return getSavedFalls().indexOf(id)!==-1;}
 function toggleSaved(id){
+  id=canonicalFallId(id);
   var list=getSavedFalls();
   var idx=list.indexOf(id);
   var saved=idx===-1;
@@ -1260,6 +1273,7 @@ function normalizeFallRow(row){
   var regionLabel=region || stateInfo.name || 'Waterfall Region';
   return {
     id:id||mkid(),
+    merge_key:slugify((stateInfo.code||stateInfo.name||'')+'_'+String(name).trim()),
     name:String(name).trim(),
     region:regionLabel,
     state:stateInfo.code,
@@ -1314,18 +1328,40 @@ function rowIsVerifiedPublic(row){
   return isPublicOk && isVerifiedOk;
 }
 function mergeFalls(rows){
-  var merged={}, order=[];
+  var merged={}, order=[], byMergeKey={};
+  FALL_ALIASES={};
   FALLS_FALLBACK.forEach(function(f){
-    merged[f.id]=Object.assign({state:'GA',state_name:'Georgia'},f);
+    var seeded=Object.assign({state:'GA',state_name:'Georgia'},f);
+    seeded.merge_key=slugify((seeded.state||seeded.state_name||'')+'_'+seeded.name);
+    merged[f.id]=seeded;
+    byMergeKey[seeded.merge_key]=f.id;
     order.push(f.id);
   });
   (rows||[]).forEach(function(row){
     var fall=normalizeFallRow(row);
     if(!fall) return;
+    var existingId=byMergeKey[fall.merge_key];
+    if(existingId){
+      var canonicalId=fall.id||existingId;
+      var base=merged[existingId]||merged[canonicalId]||{};
+      merged[canonicalId]=Object.assign({},base,fall,{id:canonicalId,merge_key:fall.merge_key});
+      if(existingId!==canonicalId){
+        FALL_ALIASES[existingId]=canonicalId;
+        delete merged[existingId];
+        var orderIdx=order.indexOf(existingId);
+        if(orderIdx!==-1) order[orderIdx]=canonicalId;
+      }
+      FALL_ALIASES[fall.id]=canonicalId;
+      byMergeKey[fall.merge_key]=canonicalId;
+      return;
+    }
     if(!merged[fall.id]) order.push(fall.id);
     merged[fall.id]=Object.assign({},merged[fall.id]||{},fall);
+    byMergeKey[fall.merge_key]=fall.id;
+    FALL_ALIASES[fall.id]=fall.id;
   });
-  FALLS=order.map(function(id){return merged[id];}).filter(Boolean).sort(function(a,b){
+  var dedupedOrder=Array.from(new Set(order.map(canonicalFallId)));
+  FALLS=dedupedOrder.map(function(id){return merged[id];}).filter(Boolean).sort(function(a,b){
     return a.name.localeCompare(b.name);
   });
 }
@@ -1662,15 +1698,16 @@ async function refreshAllData(){
     }
   }
   rows.forEach(function(r){
-    var f=FALLS.find(function(x){return x.id===r.waterfall_id;});
+    var fallId=canonicalFallId(r.waterfall_id);
+    var f=FALLS.find(function(x){return x.id===fallId;});
     var log=rowToLog(r,photos);
     if(ME && r.user_id===ME.id){
-      if(!nextDB.users[ME.id].logs[r.waterfall_id]) nextDB.users[ME.id].logs[r.waterfall_id]=[];
-      nextDB.users[ME.id].logs[r.waterfall_id].push(log);
+      if(!nextDB.users[ME.id].logs[fallId]) nextDB.users[ME.id].logs[fallId]=[];
+      nextDB.users[ME.id].logs[fallId].push(log);
     }
     if(r.visibility==='public'){
       nextDB.posts[r.id]={
-        id:r.id,userId:r.user_id,fallId:r.waterfall_id,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
+        id:r.id,userId:r.user_id,fallId:fallId,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
         isFounder:!!founderMap[r.user_id],
         date:log.date,ts:log.ts,rating:log.rating,condition:log.condition,water:log.water,loved:log.loved,improve:log.improve,
         tips:log.tips,duration:log.duration,privacy:'public',photos:log.photos.slice(0,8),
@@ -1856,9 +1893,19 @@ function trailMoodCopy(f){
   var feeCopy=fee==='Free'?'No entry fee listed.':'Expect '+fee+' in fees.';
   return 'This '+type+' sits in '+(f.region||'a beautiful stretch of trail')+'. '+feeCopy;
 }
+function fallbackTrailFeelCopy(f){
+  var sceneType=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
+  var height=String(f.height||'').trim();
+  var trail=String(f.trail||'').trim();
+  var heightKnown=height && height.toLowerCase()!=='unknown';
+  var trailKnown=trail && trail.toLowerCase()!=='unknown';
+  if(heightKnown && trailKnown) return 'A '+sceneType+' with '+height+' and a '+trail+' round trip.';
+  if(trailKnown) return 'A '+sceneType+' reached by a '+trail+' round trip.';
+  if(heightKnown) return 'A '+sceneType+' with '+height+' and a worthwhile payoff.';
+  return 'A '+sceneType+' with a payoff that feels worth the stop.';
+}
 function buildWaterfallOverview(f){
   var subject=isBeyondTheFallsStop(f)?'water-side stop':'waterfall';
-  var sceneType=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
   var summary=String(f.summary||'').trim();
   var primaryCopy=summary || f.desc || ('A beautiful '+subject+' waiting to be explored.');
   var bestFor=String(f.best_for||'').trim();
@@ -1868,12 +1915,13 @@ function buildWaterfallOverview(f){
     title:isBeyondTheFallsStop(f)?'Why explorers stop here':'Why explorers go',
     copy:primaryCopy+(summary?'':' It is the kind of stop that can turn a regular day outside into something memorable.'),
     fit:bestFor || journeyFitCopy(f),
-    scene:trailFeel || ('A '+sceneType+' with '+(f.height||'an unforgettable view')+' and a '+(f.trail||'varied')+' round trip.'),
+    scene:trailFeel || fallbackTrailFeelCopy(f),
     note:knowBefore || trailMoodCopy(f)
   };
 }
 
 function openWF(id,rowId){
+  id=canonicalFallId(id);
   wfId=id;
   editingLogRowId=rowId||null;
   var f=FALLS.find(function(x){return x.id===id;});if(!f)return;
