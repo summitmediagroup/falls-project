@@ -1273,6 +1273,9 @@ function normalizeFallRow(row){
     fee:String(pickFirst(row,['fee','fees','parking_fee'])||'Free').trim(),
     desc:String(pickFirst(row,['desc','description','notes'])||'A beautiful waterfall waiting to be explored.').trim(),
     summary:String(pickFirst(row,['summary','review_summary','field_notes','why_go','overview'])||'').trim(),
+    best_for:String(pickFirst(row,['best_for','bestfor','good_for'])||'').trim(),
+    trail_feel:String(pickFirst(row,['trail_feel','trailfeel','hike_feel'])||'').trim(),
+    know_before_you_go:String(pickFirst(row,['know_before_you_go','knowbeforeyougo','before_you_go','heads_up'])||'').trim(),
     image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim()
   };
 }
@@ -1858,12 +1861,15 @@ function buildWaterfallOverview(f){
   var sceneType=isBeyondTheFallsStop(f)?'water-side stop':String(f.type||'waterfall').toLowerCase();
   var summary=String(f.summary||'').trim();
   var primaryCopy=summary || f.desc || ('A beautiful '+subject+' waiting to be explored.');
+  var bestFor=String(f.best_for||'').trim();
+  var trailFeel=String(f.trail_feel||'').trim();
+  var knowBefore=String(f.know_before_you_go||'').trim();
   return {
     title:isBeyondTheFallsStop(f)?'Why explorers stop here':'Why explorers go',
     copy:primaryCopy+(summary?'':' It is the kind of stop that can turn a regular day outside into something memorable.'),
-    fit:journeyFitCopy(f),
-    scene:'A '+sceneType+' with '+(f.height||'an unforgettable view')+' and a '+(f.trail||'varied')+' round trip.',
-    note:trailMoodCopy(f)
+    fit:bestFor || journeyFitCopy(f),
+    scene:trailFeel || ('A '+sceneType+' with '+(f.height||'an unforgettable view')+' and a '+(f.trail||'varied')+' round trip.'),
+    note:knowBefore || trailMoodCopy(f)
   };
 }
 
