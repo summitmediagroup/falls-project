@@ -895,6 +895,7 @@ function handleForUsername(name){
 }
 function fallHeroMeta(f){
   if(!f) return {src:heroFor('fallback'),creditHtml:''};
+  var submission=publicHeroSubmissionForFall(f.id);
   var custom=f.image_url||f.image||f.hero_image||f.hero||'';
   var credit=String(f.image_credit||f.credit||f.image_source||'').trim();
   var creditUrl=String(f.image_credit_url||f.credit_url||f.image_source_url||'').trim();
@@ -906,7 +907,6 @@ function fallHeroMeta(f){
         : ''
     };
   }
-  var submission=publicHeroSubmissionForFall(f.id);
   if(submission && submission.photos && submission.photos[0]){
     return {
       src:submission.photos[0],
@@ -1241,6 +1241,14 @@ function numOrNull(v){
   var n=typeof v==='number'?v:parseFloat(v);
   return isFinite(n)?n:null;
 }
+function withTimeout(promise, ms, message){
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject){
+      setTimeout(function(){reject(new Error(message||'Request timed out'));}, ms);
+    })
+  ]);
+}
 function formatFeet(v){
   if(v===undefined || v===null || v==='') return '';
   var s=String(v).trim();
@@ -1290,7 +1298,9 @@ function normalizeFallRow(row){
     best_for:String(pickFirst(row,['best_for','bestfor','good_for'])||'').trim(),
     trail_feel:String(pickFirst(row,['trail_feel','trailfeel','hike_feel'])||'').trim(),
     know_before_you_go:String(pickFirst(row,['know_before_you_go','knowbeforeyougo','before_you_go','heads_up'])||'').trim(),
-    image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim()
+    image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim(),
+    image_credit:String(pickFirst(row,['image_credit','credit','image_source'])||'').trim(),
+    image_credit_url:String(pickFirst(row,['image_credit_url','credit_url','image_source_url'])||'').trim()
   };
 }
 function rowFlagValue(row, keys){
@@ -1605,7 +1615,7 @@ async function ensureProfile(user){
 
 async function hydrateSession(){
   try{
-    var s=await sb.auth.getSession();
+    var s=await withTimeout(sb.auth.getSession(),12000,'Session check timed out');
     var user=s.data&&s.data.session&&s.data.session.user;
     if(!user){
       ME=null;
@@ -2321,9 +2331,9 @@ async function doLogin(){
     setAuthBusy(true,'Signing In...');
     var em=normalizeEmail(document.getElementById('li-em').value),pw=document.getElementById('li-pw').value;
     if(!em||!pw){toast('Please enter your email and password');return;}
-    var res=await sb.auth.signInWithPassword({email:em,password:pw});
+    var res=await withTimeout(sb.auth.signInWithPassword({email:em,password:pw}),15000,'Sign-in timed out. Please try again.');
     if(res.error) throw res.error;
-    await hydrateSession();
+    await withTimeout(hydrateSession(),12000,'Session restore timed out after sign-in');
     closeOv('ov-auth');
     renderNav();
     try{await refreshAllData();}catch(err){console.error(err);}
@@ -2341,10 +2351,10 @@ async function doSignup(){
     var nm=document.getElementById('su-nm').value.trim(),em=normalizeEmail(document.getElementById('su-em').value),pw=document.getElementById('su-pw').value;
     if(!nm||!em||!pw){toast('Please fill all fields');return;}
     if(pw.length<6){toast('Password must be 6+ characters');return;}
-    var res=await sb.auth.signUp({email:em,password:pw,options:{data:{name:nm}}});
+    var res=await withTimeout(sb.auth.signUp({email:em,password:pw,options:{data:{name:nm}}}),15000,'Account creation timed out. Please try again.');
     if(res.error) throw res.error;
     if(res.data && res.data.user){
-      await hydrateSession();
+      await withTimeout(hydrateSession(),12000,'Session restore timed out after sign-up');
       closeOv('ov-auth');
       renderNav();
       try{await refreshAllData();}catch(err){console.error(err);}
