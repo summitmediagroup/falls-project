@@ -2242,6 +2242,47 @@ function openPost(pid){
   openOv('ov-post');
 }
 
+function openJournalEntry(fallId,rowId){
+  var id=canonicalFallId(fallId);
+  var f=FALLS.find(function(x){return x.id===id;})||{name:'Waterfall',region:''};
+  var log=getLogByRowId(id,rowId);
+  if(!log){
+    openWF(id,rowId);
+    return;
+  }
+  document.getElementById('ph-wf').textContent=f.region||'Your Trail Journal';
+  document.getElementById('ph-title').textContent=f.name||'Journal Entry';
+  var hbg=document.getElementById('post-bg');
+  var heroItems=log.photos&&log.photos.length?log.photos.slice(0,3):[fallHeroMeta(f).src];
+  hbg.innerHTML=heroItems.map(function(x,i){
+    return mediaIsVideo(x)
+      ? '<video src="'+esc(x)+'" muted playsinline autoplay loop preload="metadata"></video>'
+      : '<img src="'+esc(x)+'" alt="'+esc((f.name||'Waterfall')+' media '+(i+1))+'">';
+  }).join('');
+  var stats=[
+    log.rating?'<div class="pstat"><div class="pstat-v" style="color:var(--gold)">'+'&#9733;'.repeat(log.rating)+'</div><div class="pstat-k">Your Rating</div></div>':'',
+    log.duration?'<div class="pstat"><div class="pstat-v">'+esc(log.duration)+'</div><div class="pstat-k">Duration</div></div>':'',
+    log.date?'<div class="pstat"><div class="pstat-v" style="font-size:.88rem">'+esc(log.date)+'</div><div class="pstat-k">Visited</div></div>':''
+  ].filter(Boolean).join('');
+  var intro=(log.loved||log.tips||log.improve||'A trail memory you saved for yourself.');
+  var sections='';
+  if(log.condition) sections+='<div class="post-sec"><div class="post-sec-lbl">Trail Condition</div><div class="post-sec-txt">'+esc(log.condition)+'</div></div>';
+  if(log.water) sections+='<div class="post-sec"><div class="post-sec-lbl">Water Level</div><div class="post-sec-txt">'+esc(log.water)+'</div></div>';
+  if(log.loved) sections+='<div class="post-sec"><div class="post-sec-lbl">What You Loved</div><div class="post-sec-txt">'+esc(log.loved)+'</div></div>';
+  if(log.improve) sections+='<div class="post-sec"><div class="post-sec-lbl">Could Be Better</div><div class="post-sec-txt">'+esc(log.improve)+'</div></div>';
+  if(log.tips) sections+='<div class="post-sec"><div class="post-sec-lbl">Notes For Next Time</div><div class="post-sec-txt">'+esc(log.tips)+'</div></div>';
+  var gallery=log.photos&&log.photos.length?'<div class="post-sec"><div class="post-sec-lbl">Your Trail Album</div><div class="post-gal">'+log.photos.map(function(x,i){return mediaIsVideo(x)?'<video src="'+esc(x)+'" controls playsinline preload="metadata"></video>':'<img src="'+esc(x)+'" alt="Trail photo '+(i+1)+'" data-lb="'+esc(x)+'">';}).join('')+'</div></div>':'';
+  document.getElementById('post-bd').innerHTML=
+    '<div class="post-abar"><div class="post-av">'+esc((ME&&ME.name?ME.name:'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc((ME&&ME.name)||'You')+'</div><div class="post-adt">'+esc((log.date||'')+(log.privacy?' · '+(log.privacy==='public'?'Public entry':'Private entry'):''))
+    +'</div></div></div>'
+    +(stats?'<div class="post-stats">'+stats+'</div>':'')
+    +'<p class="post-story-intro">'+esc(intro)+'</p>'
+    +gallery
+    +sections
+    +'<div class="post-cta"><button class="btn-out" data-editvisit="'+esc(id)+'" data-rowid="'+esc(rowId)+'">Edit This Visit</button><button class="btn-out" data-goto="'+esc(id)+'">View Waterfall</button></div>';
+  openOv('ov-post');
+}
+
 function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
@@ -2304,7 +2345,7 @@ function renderJournal(){
     var exc=e.log.loved||e.log.tips||e.log.improve||'';
     var d=document.createElement('div');d.className='je';
     d.innerHTML='<div class="je-img">'+mediaThumbMarkup(hero,'','')+'</div><div class="je-body"><div class="je-eye">'+esc(f.region)+'</div><div class="je-name">'+esc(f.name)+'</div>'+(exc?'<div class="je-exc">'+esc(exc.slice(0,120))+'</div>':'')+'<div class="je-meta">'+(e.log.date?'<span>'+esc(e.log.date)+'</span>':'')+(e.log.duration?'<span>&middot; '+esc(e.log.duration)+'</span>':'')+(e.log.rating?'<span>&middot; '+'&#9733;'.repeat(e.log.rating)+'</span>':'')+'<span class="pbadge '+(e.log.privacy==='public'?'pub':'priv')+'">'+(e.log.privacy==='public'?'Public':'Private')+'</span></div></div>';
-    d.addEventListener('click',function(){openWF(e.id,e.log.rowId);});
+    d.addEventListener('click',function(){openJournalEntry(e.id,e.log.rowId);});
     ent.appendChild(d);
   });
 }
@@ -2532,7 +2573,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   });
   document.getElementById('ex-grid').addEventListener('click',function(e){var c=e.target.closest('.pcard');if(c)openPost(c.dataset.pid);});
   document.getElementById('wf-comm').addEventListener('click',function(e){var c=e.target.closest('.mpost[data-pid]');if(c){closeOv('ov-wf');openPost(c.dataset.pid);}});
-  document.getElementById('post-bd').addEventListener('click',function(e){var b=e.target.closest('[data-goto]');if(b){closeOv('ov-post');openWF(b.dataset.goto);}});
+  document.getElementById('post-bd').addEventListener('click',function(e){
+    var edit=e.target.closest('[data-editvisit]');
+    if(edit){
+      closeOv('ov-post');
+      openWF(edit.dataset.editvisit,edit.dataset.rowid);
+      return;
+    }
+    var b=e.target.closest('[data-goto]');
+    if(b){
+      closeOv('ov-post');
+      openWF(b.dataset.goto);
+    }
+  });
   // Lightbox
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
