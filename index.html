@@ -1638,6 +1638,25 @@ async function isFoundingExplorer(profile){
 function founderMarkMarkup(isFounder){
   return isFounder?'<span class="founder-mark">★ Founder</span>':'';
 }
+function setMeFromProfile(user, prof, isFounder){
+  ME={
+    id:user.id,
+    name:(prof&&prof.name)||user.email.split('@')[0],
+    email:user.email,
+    plan:(prof&&prof.plan)||'free',
+    is_pro:profileIsPro(prof),
+    created_at:(prof&&prof.created_at)||null,
+    is_founding_explorer:!!isFounder
+  };
+  cacheSessionSnapshot();
+  SESSION_READY=true;
+}
+async function requireLiveSession(){
+  var s=await withTimeout(sb.auth.getSession(),10000,'Session check timed out');
+  var session=s&&s.data&&s.data.session;
+  if(session && session.user) return session;
+  throw new Error('Please sign in again before saving this visit.');
+}
 
 async function ensureProfile(user){
   var email=normalizeEmail(user.email);
@@ -1687,17 +1706,7 @@ async function hydrateSession(){
     }
     var prof=await ensureProfile(user);
     var isFounder=await isFoundingExplorer(prof);
-    ME={
-      id:user.id,
-      name:(prof&&prof.name)||user.email.split('@')[0],
-      email:user.email,
-      plan:(prof&&prof.plan)||'free',
-      is_pro:profileIsPro(prof),
-      created_at:(prof&&prof.created_at)||null,
-      is_founding_explorer:isFounder
-    };
-    cacheSessionSnapshot();
-    SESSION_READY=true;
+    setMeFromProfile(user, prof, isFounder);
   } catch(err){
     if(cached){
       ME=cached;
@@ -2181,6 +2190,7 @@ async function saveLog(){
   }
   try{
     if(!ME){openAuth();return;}
+    await requireLiveSession();
     btn=document.getElementById('btn-save-log');
     note=document.getElementById('wf-form-note');
     originalNote=note?note.textContent:'';
@@ -2448,7 +2458,11 @@ async function doLogin(){
     if(!em||!pw){toast('Please enter your email and password');return;}
     var res=await withTimeout(sb.auth.signInWithPassword({email:em,password:pw}),15000,'Sign-in timed out. Please try again.');
     if(res.error) throw res.error;
-    await withTimeout(hydrateSession(),12000,'Session restore timed out after sign-in');
+    var loginUser=(res.data&&res.data.user) || (res.data&&res.data.session&&res.data.session.user);
+    if(!loginUser) throw new Error('Signed in, but your account session did not finish loading. Please try again.');
+    var prof=await ensureProfile(loginUser);
+    var isFounder=await isFoundingExplorer(prof);
+    setMeFromProfile(loginUser, prof, isFounder);
     closeOv('ov-auth');
     renderNav();
     try{await refreshAllData();}catch(err){console.error(err);}
@@ -2469,7 +2483,9 @@ async function doSignup(){
     var res=await withTimeout(sb.auth.signUp({email:em,password:pw,options:{data:{name:nm}}}),15000,'Account creation timed out. Please try again.');
     if(res.error) throw res.error;
     if(res.data && res.data.user){
-      await withTimeout(hydrateSession(),12000,'Session restore timed out after sign-up');
+      var prof=await ensureProfile(res.data.user);
+      var isFounder=await isFoundingExplorer(prof);
+      setMeFromProfile(res.data.user, prof, isFounder);
       closeOv('ov-auth');
       renderNav();
       try{await refreshAllData();}catch(err){console.error(err);}
