@@ -1401,22 +1401,36 @@ function mergeFalls(rows){
 }
 async function loadFallsFromSupabase(){
   try{
-    var res=await Promise.race([
-      sbPublic.from('waterfalls').select('*').order('name',{ascending:true}),
-      new Promise(function(_, reject){
-        setTimeout(function(){reject(new Error('waterfalls load timed out'));}, 12000);
-      })
-    ]);
-    if(res.error){
-      console.error('waterfalls load failed:',res.error);
-      FALLS=FALLS_FALLBACK.slice();
-      return;
+    var tried=[];
+    var clients=[];
+    if(ME) clients.push({label:'private', client:sb});
+    clients.push({label:'public', client:sbPublic});
+    if(!ME) clients.push({label:'private', client:sb});
+
+    for(var i=0;i<clients.length;i++){
+      var entry=clients[i];
+      if(!entry || !entry.client || tried.indexOf(entry.label)!==-1) continue;
+      tried.push(entry.label);
+      try{
+        var res=await withTimeout(
+          withRetry(function(){
+            return entry.client.from('waterfalls').select('*').order('name',{ascending:true});
+          }, 2, 450),
+          20000,
+          'waterfalls load timed out'
+        );
+        if(res && !res.error && res.data && res.data.length){
+          mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
+          return;
+        }
+        if(res && res.error){
+          console.error('waterfalls load failed via '+entry.label+':',res.error);
+        }
+      } catch(innerErr){
+        console.error('waterfalls load crashed via '+entry.label+':',innerErr);
+      }
     }
-    if(res.data && res.data.length){
-      mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
-    } else {
-      FALLS=FALLS_FALLBACK.slice();
-    }
+    FALLS=FALLS_FALLBACK.slice();
   } catch(err){
     console.error('waterfalls load crashed:',err);
     FALLS=FALLS_FALLBACK.slice();
@@ -2740,8 +2754,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   sb.auth.onAuthStateChange(async function(event, session){
     try{
       if(session && session.user){
-        await ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length);
         await hydrateSession();
+        await ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length);
         renderNav();
         try{await refreshAllData();}catch(err){console.error(err);}
         renderList();renderExplore();renderJournal();
@@ -2767,8 +2781,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     renderList();
     renderExplore();
     renderJournal();
-    await ensureFreshFalls(true);
     await hydrateSession();
+    await ensureFreshFalls(true);
     renderNav();
     await refreshAllData();
     renderList();renderExplore();renderJournal();
