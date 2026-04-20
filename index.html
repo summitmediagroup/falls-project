@@ -912,6 +912,13 @@ function handleForUsername(name){
   var base=String(name||'explorer').trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
   return '@'+(base||'explorer');
 }
+function escAttr(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
 function fallHeroMeta(f){
   if(!f) return {src:heroFor('fallback'),creditHtml:''};
   var submission=publicHeroSubmissionForFall(f.id);
