@@ -890,6 +890,14 @@ function publicHeroSubmissionForFall(fallId){
   });
   return posts[0]||null;
 }
+function pickCoverMedia(list){
+  var media=(list||[]).filter(Boolean);
+  if(!media.length) return '';
+  for(var i=media.length-1;i>=0;i--){
+    if(!mediaIsVideo(media[i])) return media[i];
+  }
+  return media[0];
+}
 function handleForUsername(name){
   var base=String(name||'explorer').trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
   return '@'+(base||'explorer');
@@ -908,9 +916,10 @@ function fallHeroMeta(f){
         : ''
     };
   }
-  if(submission && submission.photos && submission.photos[0]){
+  var submissionHero=submission && submission.photos ? pickCoverMedia(submission.photos) : '';
+  if(submissionHero){
     return {
-      src:submission.photos[0],
+      src:submissionHero,
       creditHtml:'Submitted by '+esc(handleForUsername(submission.authorName||'Explorer'))
     };
   }
@@ -988,7 +997,8 @@ var MAX_IMAGE_DIMENSION=1800;
 var SAVED_KEY='falls_saved_to_visit_v1';
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
 var SESSION_CACHE_KEY='falls_session_cache_v1';
-var SESSION_READY=true;
+var SESSION_READY=false;
+var AUTH_SIGNING_OUT=false;
 var AUTH_RETURN={page:'land',wfId:null,rowId:null};
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
@@ -1250,6 +1260,20 @@ function withTimeout(promise, ms, message){
     })
   ]);
 }
+async function withRetry(fn, attempts, delayMs){
+  var lastErr=null;
+  for(var i=0;i<attempts;i++){
+    try{
+      return await fn(i);
+    } catch(err){
+      lastErr=err;
+      if(i<attempts-1 && delayMs){
+        await new Promise(function(resolve){setTimeout(resolve,delayMs);});
+      }
+    }
+  }
+  throw lastErr;
+}
 function formatFeet(v){
   if(v===undefined || v===null || v==='') return '';
   var s=String(v).trim();
@@ -1306,7 +1330,10 @@ function normalizeFallRow(row){
 }
 function rowFlagValue(row, keys){
   for(var i=0;i<keys.length;i++){
-    if(row[keys[i]]!==undefined) return row[keys[i]];
+    var val=row[keys[i]];
+    if(val===undefined || val===null) continue;
+    if(typeof val==='string' && !val.trim()) continue;
+    return val;
   }
   return undefined;
 }
@@ -1378,26 +1405,83 @@ function mergeFalls(rows){
 }
 async function loadFallsFromSupabase(){
   try{
-    var res=await Promise.race([
-      sbPublic.from('waterfalls').select('*').order('name',{ascending:true}),
-      new Promise(function(_, reject){
-        setTimeout(function(){reject(new Error('waterfalls load timed out'));}, 12000);
-      })
-    ]);
-    if(res.error){
-      console.error('waterfalls load failed:',res.error);
-      FALLS=FALLS_FALLBACK.slice();
-      return;
+    var tried=[];
+    var clients=[];
+    var attempts=[];
+    if(ME) clients.push({label:'private', client:sb});
+    clients.push({label:'public', client:sbPublic});
+    if(!ME) clients.push({label:'private', client:sb});
+
+    for(var i=0;i<clients.length;i++){
+      var entry=clients[i];
+      if(!entry || !entry.client || tried.indexOf(entry.label)!==-1) continue;
+      tried.push(entry.label);
+      try{
+        for(var pass=0;pass<2;pass++){
+          var queryLabel=entry.label+(pass===0?':ordered':':plain');
+          try{
+            var res=await withTimeout(
+              withRetry(function(){
+                var q=entry.client.from('waterfalls').select('*');
+                if(pass===0) q=q.order('name',{ascending:true});
+                return q;
+              }, 2, 450),
+              20000,
+              'waterfalls load timed out'
+            );
+            if(res && !res.error && res.data && res.data.length){
+              mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
+              return;
+            }
+            if(res && res.error){
+              attempts.push(queryLabel+' error: '+(res.error.message||res.error.code||'unknown'));
+              console.error('waterfalls load failed via '+queryLabel+':',res.error);
+            } else if(res && Array.isArray(res.data) && !res.data.length){
+              attempts.push(queryLabel+' returned 0 rows');
+            }
+          } catch(queryErr){
+            attempts.push(queryLabel+' crash: '+(queryErr && queryErr.message ? queryErr.message : String(queryErr)));
+            console.error('waterfalls load crashed via '+queryLabel+':',queryErr);
+          }
+        }
+      } catch(innerErr){
+        console.error('waterfalls load crashed via '+entry.label+':',innerErr);
+      }
     }
-    if(res.data && res.data.length){
-      mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
-    } else {
-      FALLS=FALLS_FALLBACK.slice();
-    }
+    window.__fallsLoadDebug=attempts.slice();
+    console.error('waterfalls load fell back to bundled set:',attempts);
+    try{
+      toast('Waterfalls failed to load from Supabase. Open the browser console for details.');
+    } catch(err){}
+    FALLS=FALLS_FALLBACK.slice();
   } catch(err){
     console.error('waterfalls load crashed:',err);
+    try{
+      toast('Waterfalls crashed while loading from Supabase. Open the browser console for details.');
+    } catch(innerErr){}
     FALLS=FALLS_FALLBACK.slice();
   }
+}
+async function ensureFreshFalls(force){
+  force=!!force;
+  if(!force && FALLS && FALLS.length>FALLS_FALLBACK.length) return true;
+  await loadFallsFromSupabase();
+  renderLandingCtas();
+  renderList();
+  renderExplore();
+  if(MAP){
+    Object.keys(MK).forEach(function(id){
+      if(MK[id] && MAP.hasLayer(MK[id])) MAP.removeLayer(MK[id]);
+    });
+    MK={};
+    FALLS.forEach(function(f){
+      var m=L.marker([f.lat,f.lng],{icon:mkIcon(isVis(f.id))}).addTo(MAP)
+        .bindTooltip(f.name,{direction:'top',offset:[0,-20]})
+        .on('click',function(){openWF(f.id);});
+      MK[f.id]=m;
+    });
+  }
+  return FALLS && FALLS.length>0;
 }
 function dataUrlToBlob(dataUrl){
   var parts=dataUrl.split(',');
@@ -1652,7 +1736,9 @@ function setMeFromProfile(user, prof, isFounder){
   SESSION_READY=true;
 }
 async function requireLiveSession(){
-  var s=await withTimeout(sb.auth.getSession(),10000,'Session check timed out');
+  var s=await withRetry(function(){
+    return withTimeout(sb.auth.getSession(),12000,'Session check timed out');
+  },2,600);
   var session=s&&s.data&&s.data.session;
   if(session && session.user) return session;
   throw new Error('Please sign in again before saving this visit.');
@@ -2281,7 +2367,7 @@ function renderExplore(){
   if(!posts.length){grid.innerHTML='<div class="ex-empty"><h3>No reports yet</h3><p>Be the first to share your waterfall adventure.</p></div>';return;}
   grid.innerHTML=posts.map(function(p){
     var fall=FALLS.find(function(x){return x.id===p.fallId;});
-    var hero=p.photos&&p.photos[0]?p.photos[0]:fallHeroMeta(fall||{id:p.fallId||''}).src;
+    var hero=p.photos&&p.photos.length?pickCoverMedia(p.photos):fallHeroMeta(fall||{id:p.fallId||''}).src;
     var stars=p.rating?'&#9733;'.repeat(p.rating):'';
     var base=(p.loved||p.tips||p.improve||'An adventure in the Georgia mountains');
     var exc=esc(base.length>100?base.slice(0,100)+'...':base);
@@ -2456,7 +2542,13 @@ async function doLogin(){
     setAuthBusy(true,'Signing In...');
     var em=normalizeEmail(document.getElementById('li-em').value),pw=document.getElementById('li-pw').value;
     if(!em||!pw){toast('Please enter your email and password');return;}
-    var res=await withTimeout(sb.auth.signInWithPassword({email:em,password:pw}),15000,'Sign-in timed out. Please try again.');
+    var res=await withRetry(function(attempt){
+      return withTimeout(
+        sb.auth.signInWithPassword({email:em,password:pw}),
+        20000,
+        attempt===0?'Sign-in timed out. Retrying...':'Sign-in timed out. Please try again.'
+      );
+    },2,900);
     if(res.error) throw res.error;
     var loginUser=(res.data&&res.data.user) || (res.data&&res.data.session&&res.data.session.user);
     if(!loginUser) throw new Error('Signed in, but your account session did not finish loading. Please try again.');
@@ -2512,6 +2604,7 @@ async function doResetPassword(){
   }
 }
 async function doLogout(){
+  AUTH_SIGNING_OUT=true;
   await sb.auth.signOut();
   ME=null;DB={users:{},posts:{}};
   SESSION_READY=true;
@@ -2541,6 +2634,10 @@ function renderNav(){
       if(up) up.addEventListener('click',upgradeToPro);
       var manage=document.getElementById('btn-manage-sub-nav');
       if(manage) manage.addEventListener('click',openBillingPortal);
+
+    } else if(!SESSION_READY){
+      el.innerHTML =
+        '<button class="btn-ghost" disabled style="margin-right:5px;opacity:.7;cursor:default">Restoring Session...</button>';
 
     } else {
       el.innerHTML =
@@ -2577,7 +2674,12 @@ function showPage(nm){
 }
 function goPage(nm){
   if(showPage(nm)===false) return;
-  if(nm==='map'){initMap();setTimeout(function(){if(MAP)MAP.invalidateSize();},60);renderList();}
+  if(nm==='map'){
+    ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length).catch(function(err){console.error(err);});
+    initMap();
+    setTimeout(function(){if(MAP)MAP.invalidateSize();},60);
+    renderList();
+  }
   if(nm==='explore')renderExplore();
   if(nm==='journal')renderJournal();
 }
@@ -2683,34 +2785,61 @@ document.addEventListener('DOMContentLoaded', async function() {
   sb.auth.onAuthStateChange(async function(event, session){
     try{
       if(session && session.user){
+        AUTH_SIGNING_OUT=false;
         await hydrateSession();
+        await ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length);
         renderNav();
         try{await refreshAllData();}catch(err){console.error(err);}
         renderList();renderExplore();renderJournal();
       } else if(event==='SIGNED_OUT'){
-        ME=null;DB={users:{},posts:{}};
-        SESSION_READY=true;
-        clearCachedSession();
-        renderNav();renderList();renderExplore();renderJournal();
+        if(AUTH_SIGNING_OUT){
+          AUTH_SIGNING_OUT=false;
+          ME=null;DB={users:{},posts:{}};
+          SESSION_READY=true;
+          clearCachedSession();
+          renderNav();renderList();renderExplore();renderJournal();
+        } else {
+          var cached=restoreCachedSession();
+          if(cached){
+            ME=cached;
+            SESSION_READY=true;
+            renderNav();renderList();renderExplore();renderJournal();
+            return;
+          }
+          ME=null;DB={users:{},posts:{}};
+          SESSION_READY=true;
+          clearCachedSession();
+          renderNav();renderList();renderExplore();renderJournal();
+        }
       } else {
-        SESSION_READY=true;
+        if(!ME){
+          var cachedState=restoreCachedSession();
+          if(cachedState) ME=cachedState;
+        }
+        SESSION_READY=!!ME;
         renderNav();renderList();renderExplore();renderJournal();
       }
     } catch(err){
       console.error('auth state sync failed:', err);
-      SESSION_READY=true;
+      if(!ME){
+        var cachedErr=restoreCachedSession();
+        if(cachedErr) ME=cachedErr;
+      }
+      SESSION_READY=!!ME;
       renderNav();
     }
   });
 
 (async function(){
   try {
+    var bootCached=restoreCachedSession();
+    if(bootCached) ME=bootCached;
     renderNav();
     renderList();
     renderExplore();
     renderJournal();
-    await loadFallsFromSupabase();
     await hydrateSession();
+    await ensureFreshFalls(true);
     renderNav();
     await refreshAllData();
     renderList();renderExplore();renderJournal();
