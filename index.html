@@ -890,14 +890,6 @@ function publicHeroSubmissionForFall(fallId){
   });
   return posts[0]||null;
 }
-function pickCoverMedia(list){
-  var media=(list||[]).filter(Boolean);
-  if(!media.length) return '';
-  for(var i=media.length-1;i>=0;i--){
-    if(!mediaIsVideo(media[i])) return media[i];
-  }
-  return media[0];
-}
 function handleForUsername(name){
   var base=String(name||'explorer').trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
   return '@'+(base||'explorer');
@@ -916,10 +908,9 @@ function fallHeroMeta(f){
         : ''
     };
   }
-  var submissionHero=submission && submission.photos ? pickCoverMedia(submission.photos) : '';
-  if(submissionHero){
+  if(submission && submission.photos && submission.photos[0]){
     return {
-      src:submissionHero,
+      src:submission.photos[0],
       creditHtml:'Submitted by '+esc(handleForUsername(submission.authorName||'Explorer'))
     };
   }
@@ -2290,7 +2281,7 @@ function renderExplore(){
   if(!posts.length){grid.innerHTML='<div class="ex-empty"><h3>No reports yet</h3><p>Be the first to share your waterfall adventure.</p></div>';return;}
   grid.innerHTML=posts.map(function(p){
     var fall=FALLS.find(function(x){return x.id===p.fallId;});
-    var hero=p.photos&&p.photos.length?pickCoverMedia(p.photos):fallHeroMeta(fall||{id:p.fallId||''}).src;
+    var hero=p.photos&&p.photos[0]?p.photos[0]:fallHeroMeta(fall||{id:p.fallId||''}).src;
     var stars=p.rating?'&#9733;'.repeat(p.rating):'';
     var base=(p.loved||p.tips||p.improve||'An adventure in the Georgia mountains');
     var exc=esc(base.length>100?base.slice(0,100)+'...':base);
