@@ -983,6 +983,7 @@ var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 var sbPublic = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
   auth:{
+    storageKey:'falls-public-auth',
     persistSession:false,
     autoRefreshToken:false,
     detectSessionInUrl:false
