@@ -997,8 +997,7 @@ var MAX_IMAGE_DIMENSION=1800;
 var SAVED_KEY='falls_saved_to_visit_v1';
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
 var SESSION_CACHE_KEY='falls_session_cache_v1';
-var SESSION_READY=false;
-var AUTH_SIGNING_OUT=false;
+var SESSION_READY=true;
 var AUTH_RETURN={page:'land',wfId:null,rowId:null};
 
 function normalizeEmail(v){return (v||"").trim().toLowerCase();}
@@ -1330,10 +1329,7 @@ function normalizeFallRow(row){
 }
 function rowFlagValue(row, keys){
   for(var i=0;i<keys.length;i++){
-    var val=row[keys[i]];
-    if(val===undefined || val===null) continue;
-    if(typeof val==='string' && !val.trim()) continue;
-    return val;
+    if(row[keys[i]]!==undefined) return row[keys[i]];
   }
   return undefined;
 }
@@ -1405,52 +1401,22 @@ function mergeFalls(rows){
 }
 async function loadFallsFromSupabase(){
   try{
-    var tried=[];
-    var clients=[];
-    var attempts=[];
-    if(ME) clients.push({label:'private', client:sb});
-    clients.push({label:'public', client:sbPublic});
-    if(!ME) clients.push({label:'private', client:sb});
-
-    for(var i=0;i<clients.length;i++){
-      var entry=clients[i];
-      if(!entry || !entry.client || tried.indexOf(entry.label)!==-1) continue;
-      tried.push(entry.label);
-      try{
-        for(var pass=0;pass<2;pass++){
-          var queryLabel=entry.label+(pass===0?':ordered':':plain');
-          try{
-            var res=await withTimeout(
-              withRetry(function(){
-                var q=entry.client.from('waterfalls').select('*');
-                if(pass===0) q=q.order('name',{ascending:true});
-                return q;
-              }, 2, 450),
-              20000,
-              'waterfalls load timed out'
-            );
-            if(res && !res.error && res.data && res.data.length){
-              mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
-              return;
-            }
-            if(res && res.error){
-              attempts.push(queryLabel+' error: '+(res.error.message||res.error.code||'unknown'));
-              console.error('waterfalls load failed via '+queryLabel+':',res.error);
-            } else if(res && Array.isArray(res.data) && !res.data.length){
-              attempts.push(queryLabel+' returned 0 rows');
-            }
-          } catch(queryErr){
-            attempts.push(queryLabel+' crash: '+(queryErr && queryErr.message ? queryErr.message : String(queryErr)));
-            console.error('waterfalls load crashed via '+queryLabel+':',queryErr);
-          }
-        }
-      } catch(innerErr){
-        console.error('waterfalls load crashed via '+entry.label+':',innerErr);
-      }
+    var res=await Promise.race([
+      sbPublic.from('waterfalls').select('*').order('name',{ascending:true}),
+      new Promise(function(_, reject){
+        setTimeout(function(){reject(new Error('waterfalls load timed out'));}, 12000);
+      })
+    ]);
+    if(res.error){
+      console.error('waterfalls load failed:',res.error);
+      FALLS=FALLS_FALLBACK.slice();
+      return;
     }
-    window.__fallsLoadDebug=attempts.slice();
-    console.error('waterfalls load fell back to bundled set:',attempts);
-    FALLS=FALLS_FALLBACK.slice();
+    if(res.data && res.data.length){
+      mergeFalls((res.data||[]).filter(rowIsVerifiedPublic));
+    } else {
+      FALLS=FALLS_FALLBACK.slice();
+    }
   } catch(err){
     console.error('waterfalls load crashed:',err);
     FALLS=FALLS_FALLBACK.slice();
@@ -2598,7 +2564,6 @@ async function doResetPassword(){
   }
 }
 async function doLogout(){
-  AUTH_SIGNING_OUT=true;
   await sb.auth.signOut();
   ME=null;DB={users:{},posts:{}};
   SESSION_READY=true;
@@ -2628,10 +2593,6 @@ function renderNav(){
       if(up) up.addEventListener('click',upgradeToPro);
       var manage=document.getElementById('btn-manage-sub-nav');
       if(manage) manage.addEventListener('click',openBillingPortal);
-
-    } else if(!SESSION_READY){
-      el.innerHTML =
-        '<button class="btn-ghost" disabled style="margin-right:5px;opacity:.7;cursor:default">Restoring Session...</button>';
 
     } else {
       el.innerHTML =
@@ -2779,61 +2740,35 @@ document.addEventListener('DOMContentLoaded', async function() {
   sb.auth.onAuthStateChange(async function(event, session){
     try{
       if(session && session.user){
-        AUTH_SIGNING_OUT=false;
-        await hydrateSession();
         await ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length);
+        await hydrateSession();
         renderNav();
         try{await refreshAllData();}catch(err){console.error(err);}
         renderList();renderExplore();renderJournal();
       } else if(event==='SIGNED_OUT'){
-        if(AUTH_SIGNING_OUT){
-          AUTH_SIGNING_OUT=false;
-          ME=null;DB={users:{},posts:{}};
-          SESSION_READY=true;
-          clearCachedSession();
-          renderNav();renderList();renderExplore();renderJournal();
-        } else {
-          var cached=restoreCachedSession();
-          if(cached){
-            ME=cached;
-            SESSION_READY=true;
-            renderNav();renderList();renderExplore();renderJournal();
-            return;
-          }
-          ME=null;DB={users:{},posts:{}};
-          SESSION_READY=true;
-          clearCachedSession();
-          renderNav();renderList();renderExplore();renderJournal();
-        }
+        ME=null;DB={users:{},posts:{}};
+        SESSION_READY=true;
+        clearCachedSession();
+        renderNav();renderList();renderExplore();renderJournal();
       } else {
-        if(!ME){
-          var cachedState=restoreCachedSession();
-          if(cachedState) ME=cachedState;
-        }
-        SESSION_READY=!!ME;
+        SESSION_READY=true;
         renderNav();renderList();renderExplore();renderJournal();
       }
     } catch(err){
       console.error('auth state sync failed:', err);
-      if(!ME){
-        var cachedErr=restoreCachedSession();
-        if(cachedErr) ME=cachedErr;
-      }
-      SESSION_READY=!!ME;
+      SESSION_READY=true;
       renderNav();
     }
   });
 
 (async function(){
   try {
-    var bootCached=restoreCachedSession();
-    if(bootCached) ME=bootCached;
     renderNav();
     renderList();
     renderExplore();
     renderJournal();
-    await hydrateSession();
     await ensureFreshFalls(true);
+    await hydrateSession();
     renderNav();
     await refreshAllData();
     renderList();renderExplore();renderJournal();
