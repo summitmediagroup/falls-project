@@ -1259,6 +1259,20 @@ function withTimeout(promise, ms, message){
     })
   ]);
 }
+async function withRetry(fn, attempts, delayMs){
+  var lastErr=null;
+  for(var i=0;i<attempts;i++){
+    try{
+      return await fn(i);
+    } catch(err){
+      lastErr=err;
+      if(i<attempts-1 && delayMs){
+        await new Promise(function(resolve){setTimeout(resolve,delayMs);});
+      }
+    }
+  }
+  throw lastErr;
+}
 function formatFeet(v){
   if(v===undefined || v===null || v==='') return '';
   var s=String(v).trim();
@@ -1407,6 +1421,27 @@ async function loadFallsFromSupabase(){
     console.error('waterfalls load crashed:',err);
     FALLS=FALLS_FALLBACK.slice();
   }
+}
+async function ensureFreshFalls(force){
+  force=!!force;
+  if(!force && FALLS && FALLS.length>FALLS_FALLBACK.length) return true;
+  await loadFallsFromSupabase();
+  renderLandingCtas();
+  renderList();
+  renderExplore();
+  if(MAP){
+    Object.keys(MK).forEach(function(id){
+      if(MK[id] && MAP.hasLayer(MK[id])) MAP.removeLayer(MK[id]);
+    });
+    MK={};
+    FALLS.forEach(function(f){
+      var m=L.marker([f.lat,f.lng],{icon:mkIcon(isVis(f.id))}).addTo(MAP)
+        .bindTooltip(f.name,{direction:'top',offset:[0,-20]})
+        .on('click',function(){openWF(f.id);});
+      MK[f.id]=m;
+    });
+  }
+  return FALLS && FALLS.length>0;
 }
 function dataUrlToBlob(dataUrl){
   var parts=dataUrl.split(',');
@@ -1661,7 +1696,9 @@ function setMeFromProfile(user, prof, isFounder){
   SESSION_READY=true;
 }
 async function requireLiveSession(){
-  var s=await withTimeout(sb.auth.getSession(),10000,'Session check timed out');
+  var s=await withRetry(function(){
+    return withTimeout(sb.auth.getSession(),12000,'Session check timed out');
+  },2,600);
   var session=s&&s.data&&s.data.session;
   if(session && session.user) return session;
   throw new Error('Please sign in again before saving this visit.');
@@ -2465,7 +2502,13 @@ async function doLogin(){
     setAuthBusy(true,'Signing In...');
     var em=normalizeEmail(document.getElementById('li-em').value),pw=document.getElementById('li-pw').value;
     if(!em||!pw){toast('Please enter your email and password');return;}
-    var res=await withTimeout(sb.auth.signInWithPassword({email:em,password:pw}),15000,'Sign-in timed out. Please try again.');
+    var res=await withRetry(function(attempt){
+      return withTimeout(
+        sb.auth.signInWithPassword({email:em,password:pw}),
+        20000,
+        attempt===0?'Sign-in timed out. Retrying...':'Sign-in timed out. Please try again.'
+      );
+    },2,900);
     if(res.error) throw res.error;
     var loginUser=(res.data&&res.data.user) || (res.data&&res.data.session&&res.data.session.user);
     if(!loginUser) throw new Error('Signed in, but your account session did not finish loading. Please try again.');
@@ -2586,7 +2629,12 @@ function showPage(nm){
 }
 function goPage(nm){
   if(showPage(nm)===false) return;
-  if(nm==='map'){initMap();setTimeout(function(){if(MAP)MAP.invalidateSize();},60);renderList();}
+  if(nm==='map'){
+    ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length).catch(function(err){console.error(err);});
+    initMap();
+    setTimeout(function(){if(MAP)MAP.invalidateSize();},60);
+    renderList();
+  }
   if(nm==='explore')renderExplore();
   if(nm==='journal')renderJournal();
 }
@@ -2692,6 +2740,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   sb.auth.onAuthStateChange(async function(event, session){
     try{
       if(session && session.user){
+        await ensureFreshFalls(FALLS.length<=FALLS_FALLBACK.length);
         await hydrateSession();
         renderNav();
         try{await refreshAllData();}catch(err){console.error(err);}
@@ -2718,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     renderList();
     renderExplore();
     renderJournal();
-    await loadFallsFromSupabase();
+    await ensureFreshFalls(true);
     await hydrateSession();
     renderNav();
     await refreshAllData();
