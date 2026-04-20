@@ -352,6 +352,15 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wf-overview-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:10px 11px;}
 .wf-overview-item span{display:block;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(210,182,120,.78);margin-bottom:4px;}
 .wf-overview-item strong{display:block;font-size:.76rem;font-weight:500;line-height:1.55;color:rgba(255,255,255,.82);}
+.wf-check{background:linear-gradient(180deg,rgba(53,67,55,.52),rgba(20,29,23,.88));border:1px solid rgba(210,182,120,.16);padding:15px 16px 14px;margin:0 0 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
+.wf-check .sec-hd{margin-bottom:10px;}
+.wf-check-copy{font-size:.76rem;line-height:1.72;color:rgba(245,241,233,.74);margin-bottom:12px;}
+.wf-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.wf-check-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:10px 11px;}
+.wf-check-item span{display:block;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(210,182,120,.78);margin-bottom:4px;}
+.wf-check-item strong,.wf-check-item a{display:block;font-size:.74rem;font-weight:500;line-height:1.55;color:rgba(255,255,255,.86);text-decoration:none;}
+.wf-check-item a:hover{color:var(--gold);}
+.wf-check-note{margin-top:10px;font-size:.68rem;line-height:1.65;color:rgba(255,255,255,.5);}
 .sec-hd{font-family:"Cormorant",serif;font-size:.55rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid rgba(200,150,60,.15);}
 .wf-stories{background:linear-gradient(180deg,rgba(40,61,46,.38),rgba(18,31,24,.82));border:1px solid rgba(157,185,132,.18);padding:14px 14px 10px;margin:18px 0 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
 .wf-stories .sec-hd{font-size:.62rem;letter-spacing:.22em;color:#d2b678;border-bottom-color:rgba(210,182,120,.24);margin-bottom:12px;}
@@ -498,7 +507,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   .ex-hero{height:240px;}
   #m-wf,#m-auth,#m-post{width:96vw;}
   .wf-body,.post-bd,.auth-bd{padding:13px 13px 18px;}
-  .wf-overview-grid,.wf-gate-perks{grid-template-columns:1fr;}
+  .wf-overview-grid,.wf-gate-perks,.wf-check-grid{grid-template-columns:1fr;}
   .frow{flex-direction:column;}
   .nav-brand-name{display:none;}
   .nav-brand img{width:38px;height:38px;}
@@ -659,6 +668,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="wf-chips" id="wf-chips"></div>
     <p class="wf-desc" id="wf-desc"></p>
     <div class="wf-overview" id="wf-overview"></div>
+    <div class="wf-check" id="wf-check"></div>
     <div class="wf-actions" id="wf-actions"></div>
     <div id="wf-comm" class="wf-stories"></div>
     <div id="wf-exlog"></div>
@@ -1326,7 +1336,10 @@ function normalizeFallRow(row){
     know_before_you_go:String(pickFirst(row,['know_before_you_go','knowbeforeyougo','before_you_go','heads_up'])||'').trim(),
     image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim(),
     image_credit:String(pickFirst(row,['image_credit','credit','image_source'])||'').trim(),
-    image_credit_url:String(pickFirst(row,['image_credit_url','credit_url','image_source_url'])||'').trim()
+    image_credit_url:String(pickFirst(row,['image_credit_url','credit_url','image_source_url'])||'').trim(),
+    agency_name:String(pickFirst(row,['agency_name','managing_agency','agency'])||'').trim(),
+    agency_conditions_url:String(pickFirst(row,['agency_conditions_url','conditions_url','alerts_url','agency_url'])||'').trim(),
+    agency_phone:String(pickFirst(row,['agency_phone','phone','contact_phone'])||'').trim()
   };
 }
 function rowFlagValue(row, keys){
@@ -1409,6 +1422,40 @@ async function loadFallsFromSupabase(){
     var tried=[];
     var clients=[];
     var attempts=[];
+    async function tryRawFallsFetch(label, token){
+      var headers={
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+(token||SUPABASE_ANON_KEY),
+        'Accept-Profile':'public'
+      };
+      var res=await withTimeout(
+        fetch(SUPABASE_URL+'/rest/v1/waterfalls?select=*&order=name.asc',{
+          headers:headers
+        }),
+        20000,
+        'waterfalls raw fetch timed out'
+      );
+      var text=await res.text();
+      var data=null;
+      try{
+        data=JSON.parse(text);
+      } catch(parseErr){
+        data=null;
+      }
+      if(!res.ok){
+        attempts.push(label+' http '+res.status+': '+String(text||'').slice(0,180));
+        console.error('waterfalls raw fetch failed via '+label+':',res.status,text);
+        return false;
+      }
+      if(Array.isArray(data) && data.length){
+        attempts.push(label+' returned '+data.length+' rows');
+        mergeFalls(data.filter(rowIsVerifiedPublic));
+        return true;
+      }
+      attempts.push(label+' returned '+(Array.isArray(data)?data.length:'non-array')+' rows');
+      console.error('waterfalls raw fetch empty via '+label+':',data);
+      return false;
+    }
     if(ME) clients.push({label:'private', client:sb});
     clients.push({label:'public', client:sbPublic});
     if(!ME) clients.push({label:'private', client:sb});
@@ -1448,6 +1495,15 @@ async function loadFallsFromSupabase(){
       } catch(innerErr){
         console.error('waterfalls load crashed via '+entry.label+':',innerErr);
       }
+    }
+    if(await tryRawFallsFetch('raw:anon', null)) return;
+    try{
+      var session=await sb.auth.getSession();
+      var accessToken=session && session.data && session.data.session && session.data.session.access_token;
+      if(accessToken && await tryRawFallsFetch('raw:user', accessToken)) return;
+    } catch(rawAuthErr){
+      attempts.push('raw:user crash: '+(rawAuthErr && rawAuthErr.message ? rawAuthErr.message : String(rawAuthErr)));
+      console.error('waterfalls raw user fetch crashed:',rawAuthErr);
     }
     window.__fallsLoadDebug=attempts.slice();
     console.error('waterfalls load fell back to bundled set:',attempts);
@@ -2092,6 +2148,81 @@ function buildWaterfallOverview(f){
     note:knowBefore || trailMoodCopy(f)
   };
 }
+function inferAgencyResource(f){
+  var name=String((f&&f.name)||'').toLowerCase();
+  var region=String((f&&f.region)||'').toLowerCase();
+  var state=String((f&&f.state)||'').toUpperCase();
+  var desc=[name,region,String((f&&f.desc)||'').toLowerCase(),String((f&&f.summary)||'').toLowerCase()].join(' ');
+
+  if(f && (f.agency_name || f.agency_conditions_url || f.agency_phone)){
+    return {
+      name:f.agency_name||'Official conditions',
+      url:f.agency_conditions_url||'',
+      phone:f.agency_phone||''
+    };
+  }
+
+  if(/abrams falls|laurel falls|grotto falls|rainbow falls|cades cove|smoky mountain|great smoky/.test(desc)){
+    return {
+      name:'Great Smoky Mountains National Park',
+      url:'https://www.nps.gov/grsm/planyourvisit/conditions.htm',
+      phone:'(865) 436-1200'
+    };
+  }
+
+  if(state==='GA'){
+    return {
+      name:'Chattahoochee-Oconee National Forests',
+      url:'https://www.fs.usda.gov/r08/chattahoochee-oconee/conditions',
+      phone:'(770) 297-3000'
+    };
+  }
+
+  if(state==='NC'){
+    return {
+      name:'Pisgah and Nantahala National Forests',
+      url:'https://www.fs.usda.gov/r08/nfsnc/conditions',
+      phone:'(828) 257-4200'
+    };
+  }
+
+  return {
+    name:'Managing park or forest office',
+    url:'',
+    phone:''
+  };
+}
+function renderCheckBeforeYouGo(f){
+  var resource=inferAgencyResource(f);
+  var note=String(f.know_before_you_go||'').trim();
+  var html='<div class="sec-hd">Check Before You Go</div>'
+    +'<div class="wf-check-copy">Conditions, closures, wildlife activity, water levels, fees, and access rules can change quickly. We do our best to keep listings helpful and current, but official park and forest updates should always be your final check before heading out.</div>'
+    +'<div class="wf-check-grid">';
+
+  html+='<div class="wf-check-item"><span>Best Practice</span><strong>Confirm the latest access and trail conditions before you drive out.</strong></div>';
+
+  if(resource.url){
+    html+='<div class="wf-check-item"><span>Official Updates</span><a href="'+escAttr(resource.url)+'" target="_blank" rel="noopener noreferrer">Check '+esc(resource.name)+' conditions</a></div>';
+  } else {
+    html+='<div class="wf-check-item"><span>Official Updates</span><strong>Check the current alerts from the managing park, forest, or public land office.</strong></div>';
+  }
+
+  if(resource.phone){
+    html+='<div class="wf-check-item"><span>Contact</span><a href="tel:'+escAttr(resource.phone.replace(/[^0-9+]/g,''))+'">'+esc(resource.phone)+'</a></div>';
+  } else {
+    html+='<div class="wf-check-item"><span>Contact</span><strong>Use the official park or forest contact listed on the current conditions page.</strong></div>';
+  }
+
+  html+='<div class="wf-check-item"><span>Your Safety</span><strong>Bring your own judgment, watch children and pets closely, and turn around if the conditions do not feel right.</strong></div>';
+  html+='</div>';
+
+  if(note){
+    html+='<div class="wf-check-note"><strong style="color:var(--cream);font-weight:600;">Heads up:</strong> '+esc(note)+'</div>';
+  } else {
+    html+='<div class="wf-check-note">The Falls Project is designed to save you time, not replace official alerts. A quick last-minute check helps protect your day, your booking, and your crew.</div>';
+  }
+  return html;
+}
 
 function openWF(id,rowId){
   id=canonicalFallId(id);
@@ -2110,6 +2241,7 @@ function openWF(id,rowId){
   document.getElementById('wf-nm').textContent=f.name;
   document.getElementById('wf-desc').textContent=f.desc;
   document.getElementById('wf-overview').innerHTML='<div class="wf-overview-kicker">Field Notes</div><div class="wf-overview-title">'+esc(overview.title)+'</div><div class="wf-overview-copy">'+esc(overview.copy)+'</div><div class="wf-overview-grid"><div class="wf-overview-item"><span>Best For</span><strong>'+esc(overview.fit)+'</strong></div><div class="wf-overview-item"><span>Trail Feel</span><strong>'+esc(overview.scene)+'</strong></div><div class="wf-overview-item"><span>Before You Go</span><strong>'+esc(overview.note)+'</strong></div><div class="wf-overview-item"><span>Explorer Hint</span><strong>'+(isSaved(id)?'Already on your saved list, ready whenever you are.':'Save this fall if it feels like a future road-trip kind of day.')+'</strong></div></div>';
+  document.getElementById('wf-check').innerHTML=renderCheckBeforeYouGo(f);
   var savedLabel=isSaved(id)?'Remove from Saved':'Save to Visit';
   document.getElementById('wf-actions').innerHTML=
     '<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>'
