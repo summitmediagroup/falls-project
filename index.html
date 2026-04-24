@@ -1043,6 +1043,31 @@ var MAX_IMAGE_UPLOAD_BYTES=8*1024*1024;
 var MAX_VIDEO_UPLOAD_BYTES=35*1024*1024;
 var MAX_IMAGE_DIMENSION=1800;
 var SAVED_KEY='falls_saved_to_visit_v1';
+var DB_PUBLIC_CACHE_KEY='falls_trail_public_cache_v1';
+var DB_USER_CACHE_PREFIX='falls_trail_user_cache_v1_';
+function dbCacheKeyFor(userId){
+  return userId ? (DB_USER_CACHE_PREFIX+userId) : DB_PUBLIC_CACHE_KEY;
+}
+function restoreCachedTrailData(userId){
+  try{
+    var raw=localStorage.getItem(dbCacheKeyFor(userId));
+    if(!raw) return null;
+    var parsed=JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object') return null;
+    parsed.users=parsed.users&&typeof parsed.users==='object'?parsed.users:{};
+    parsed.posts=parsed.posts&&typeof parsed.posts==='object'?parsed.posts:{};
+    return parsed;
+  } catch(err){
+    return null;
+  }
+}
+function cacheTrailDataSnapshot(userId, data){
+  try{
+    if(data && typeof data==='object'){
+      localStorage.setItem(dbCacheKeyFor(userId),JSON.stringify(data));
+    }
+  } catch(err){}
+}
 var HOME_TIP_KEY='falls_home_tip_dismissed_v1';
 var SESSION_CACHE_KEY='falls_session_cache_v1';
 var SESSION_READY=false;
@@ -1940,6 +1965,7 @@ function rowToLog(r, photos){
 }
 
 async function refreshAllData(){
+  var cacheKeyUserId=ME&&ME.id?ME.id:null;
   var nextDB={users:{},posts:{}};
   if(ME) nextDB.users[ME.id]={logs:{}};
   var baseClient=ME?sb:sbPublic;
@@ -1951,7 +1977,18 @@ async function refreshAllData(){
     console.error('private trail data load failed, retrying public-only:',res.error);
     res=await sbPublic.from('waterfall_logs').select('*').eq('visibility','public').order('created_at',{ascending:false});
   }
-  if(res.error){console.error(res.error);toast('Could not load trail data');return;}
+  if(res.error){
+    console.error(res.error);
+    var cachedTrail=restoreCachedTrailData(cacheKeyUserId) || restoreCachedTrailData(null);
+    if(cachedTrail){
+      DB=cachedTrail;
+      renderNav();renderLandingCtas();renderList();renderExplore();renderJournal();
+      FALLS.forEach(function(f){refreshMk(f.id);});
+      toast('Using your last saved trail activity while Supabase reconnects.');
+      return;
+    }
+    toast('Could not load trail data');return;
+  }
   var rows=res.data||[];
   var ids=rows.map(function(r){return r.id;});
   var photos={};
@@ -1994,6 +2031,8 @@ async function refreshAllData(){
     }
   });
   DB=nextDB;
+  cacheTrailDataSnapshot(cacheKeyUserId,nextDB);
+  cacheTrailDataSnapshot(null,{users:{},posts:Object.assign({},nextDB.posts)});
   renderNav();renderLandingCtas();renderList();renderExplore();renderJournal();
   FALLS.forEach(function(f){refreshMk(f.id);});
 }
@@ -2852,6 +2891,22 @@ async function refreshFallsOnResume(force){
     FALLS_REFRESHING=false;
   }
 }
+var TRAIL_REFRESHING=false;
+async function refreshTrailOnResume(force){
+  if(TRAIL_REFRESHING || !SESSION_READY) return;
+  var hasPosts=DB && DB.posts && Object.keys(DB.posts).length;
+  var hasUserLogs=!!(ME && DB && DB.users && DB.users[ME.id] && Object.keys((DB.users[ME.id]||{}).logs||{}).length);
+  var shouldForce=!!force || !hasPosts || (!!ME && !hasUserLogs);
+  if(!shouldForce) return;
+  TRAIL_REFRESHING=true;
+  try{
+    await refreshAllData();
+  } catch(err){
+    console.error('resume trail refresh failed:',err);
+  } finally {
+    TRAIL_REFRESHING=false;
+  }
+}
 function showPage(nm){
   if(nm === 'journal' && !ME){
     openAuth();
@@ -2889,6 +2944,8 @@ function renderPrev(){document.getElementById('prev-grid').innerHTML=pPh.map(fun
 // ── WIRE EVERYTHING ON DOM READY ────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function() {
   setupHomeTip();
+  var bootTrailCache=restoreCachedTrailData(null);
+  if(bootTrailCache) DB=bootTrailCache;
   // Nav brand
   var nb=document.getElementById('nav-brand');if(nb)nb.addEventListener('click',function(){showPage('land');});
   // Nav tabs
@@ -2977,10 +3034,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Lightbox
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
-  window.addEventListener('focus',function(){refreshFallsOnResume(false);});
-  window.addEventListener('pageshow',function(){refreshFallsOnResume(false);});
+  window.addEventListener('focus',function(){refreshFallsOnResume(false);refreshTrailOnResume(false);});
+  window.addEventListener('pageshow',function(){refreshFallsOnResume(false);refreshTrailOnResume(false);});
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible') refreshFallsOnResume(false);
+    if(document.visibilityState==='visible'){
+      refreshFallsOnResume(false);
+      refreshTrailOnResume(false);
+    }
   });
 
   sb.auth.onAuthStateChange(async function(event, session){
@@ -2994,26 +3054,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         renderList();renderExplore();renderJournal();
       } else if(event==='SIGNED_OUT'){
         AUTH_SIGNING_OUT=false;
-        ME=null;DB={users:{},posts:{}};
+        ME=null;
+        DB=restoreCachedTrailData(null)||{users:{},posts:{}};
         SESSION_READY=true;
         clearCachedSession();
         renderNav();renderList();renderExplore();renderJournal();
       } else {
-        if(!ME){
-          var cachedState=restoreCachedSession();
-          if(cachedState) ME=cachedState;
-        }
-        SESSION_READY=!!ME;
+        ME=null;
+        clearCachedSession();
+        DB=restoreCachedTrailData(null)||DB||{users:{},posts:{}};
+        SESSION_READY=true;
         renderNav();renderList();renderExplore();renderJournal();
       }
     } catch(err){
       console.error('auth state sync failed:', err);
-      if(!ME){
-        var cachedErr=restoreCachedSession();
-        if(cachedErr) ME=cachedErr;
+      if(!(session && session.user)){
+        ME=null;
+        clearCachedSession();
+        DB=restoreCachedTrailData(null)||DB||{users:{},posts:{}};
       }
-      SESSION_READY=!!ME;
-      renderNav();
+      SESSION_READY=true;
+      renderNav();renderList();renderExplore();renderJournal();
     }
   });
 
@@ -3021,6 +3082,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   try {
     var bootCached=restoreCachedSession();
     if(bootCached) ME=bootCached;
+    if(ME){
+      var userTrailCache=restoreCachedTrailData(ME.id);
+      if(userTrailCache) DB=userTrailCache;
+    }
     renderNav();
     renderList();
     renderExplore();
