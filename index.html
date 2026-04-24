@@ -992,7 +992,37 @@ var FALLS_FALLBACK=[
   {id:"bridal_veil",name:"Bridal Veil Falls",region:"Habersham County",lat:34.6550,lng:-83.5720,height:"40 ft",diff:"Easy",type:"Veil",trail:"0.2 mi",fee:"Free",desc:"A delicate veil of water over a broad rock face along Highway 197."},
   {id:"yellow_branch",name:"Yellow Branch Falls",region:"Oconee County border",lat:34.8570,lng:-83.1530,height:"60 ft",diff:"Easy",type:"Plunge",trail:"1.8 mi",fee:"Free",desc:"A gorgeous 60-foot plunge near the Georgia-South Carolina border."},
 ];
-var FALLS=FALLS_FALLBACK.slice();
+var FALLS_CACHE_KEY='falls_supabase_cache_v2';
+var FALLS_SYNC_KEY='falls_supabase_sync_v2';
+function restoreCachedFalls(){
+  try{
+    var raw=localStorage.getItem(FALLS_CACHE_KEY);
+    if(!raw) return null;
+    var parsed=JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length>FALLS_FALLBACK.length ? parsed : null;
+  } catch(err){
+    return null;
+  }
+}
+function cacheFallsSnapshot(rows){
+  try{
+    if(Array.isArray(rows) && rows.length>FALLS_FALLBACK.length){
+      localStorage.setItem(FALLS_CACHE_KEY,JSON.stringify(rows));
+      localStorage.setItem(FALLS_SYNC_KEY,String(Date.now()));
+    }
+  } catch(err){}
+}
+function fallsLastSyncAge(){
+  try{
+    var raw=localStorage.getItem(FALLS_SYNC_KEY);
+    var ts=raw?parseInt(raw,10):0;
+    if(!ts) return Infinity;
+    return Date.now()-ts;
+  } catch(err){
+    return Infinity;
+  }
+}
+var FALLS=restoreCachedFalls()||FALLS_FALLBACK.slice();
 
 
 var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
@@ -1423,6 +1453,7 @@ function mergeFalls(rows){
   FALLS=dedupedOrder.map(function(id){return merged[id];}).filter(Boolean).sort(function(a,b){
     return a.name.localeCompare(b.name);
   });
+  cacheFallsSnapshot(FALLS);
 }
 async function loadFallsFromSupabase(){
   try{
@@ -1514,12 +1545,28 @@ async function loadFallsFromSupabase(){
     }
     window.__fallsLoadDebug=attempts.slice();
     console.error('waterfalls load fell back to bundled set:',attempts);
+    var cachedFalls=restoreCachedFalls();
+    if(cachedFalls){
+      FALLS=cachedFalls.slice();
+      try{
+        toast('Using your last successful waterfall map while Supabase reconnects.');
+      } catch(cacheToastErr){}
+      return;
+    }
     try{
       toast('Waterfalls failed to load from Supabase. Open the browser console for details.');
     } catch(err){}
     FALLS=FALLS_FALLBACK.slice();
   } catch(err){
     console.error('waterfalls load crashed:',err);
+    var cachedOnCrash=restoreCachedFalls();
+    if(cachedOnCrash){
+      FALLS=cachedOnCrash.slice();
+      try{
+        toast('Using your last successful waterfall map while Supabase reconnects.');
+      } catch(cacheCrashToastErr){}
+      return;
+    }
     try{
       toast('Waterfalls crashed while loading from Supabase. Open the browser console for details.');
     } catch(innerErr){}
@@ -1844,11 +1891,6 @@ async function hydrateSession(){
     var s=await withTimeout(sb.auth.getSession(),12000,'Session check timed out');
     var user=s.data&&s.data.session&&s.data.session.user;
     if(!user){
-      if(cached){
-        ME=cached;
-        SESSION_READY=true;
-        return;
-      }
       ME=null;
       clearCachedSession();
       SESSION_READY=true;
@@ -2796,6 +2838,20 @@ function renderNav(){
   }
   renderLandingCtas();
 }
+var FALLS_REFRESHING=false;
+async function refreshFallsOnResume(force){
+  if(FALLS_REFRESHING) return;
+  var shouldForce=!!force || FALLS.length<=FALLS_FALLBACK.length || fallsLastSyncAge()>5*60*1000;
+  if(!shouldForce) return;
+  FALLS_REFRESHING=true;
+  try{
+    await ensureFreshFalls(true);
+  } catch(err){
+    console.error('resume falls refresh failed:',err);
+  } finally {
+    FALLS_REFRESHING=false;
+  }
+}
 function showPage(nm){
   if(nm === 'journal' && !ME){
     openAuth();
@@ -2921,6 +2977,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Lightbox
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
+  window.addEventListener('focus',function(){refreshFallsOnResume(false);});
+  window.addEventListener('pageshow',function(){refreshFallsOnResume(false);});
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') refreshFallsOnResume(false);
+  });
 
   sb.auth.onAuthStateChange(async function(event, session){
     try{
@@ -2932,25 +2993,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         try{await refreshAllData();}catch(err){console.error(err);}
         renderList();renderExplore();renderJournal();
       } else if(event==='SIGNED_OUT'){
-        if(AUTH_SIGNING_OUT){
-          AUTH_SIGNING_OUT=false;
-          ME=null;DB={users:{},posts:{}};
-          SESSION_READY=true;
-          clearCachedSession();
-          renderNav();renderList();renderExplore();renderJournal();
-        } else {
-          var cached=restoreCachedSession();
-          if(cached){
-            ME=cached;
-            SESSION_READY=true;
-            renderNav();renderList();renderExplore();renderJournal();
-            return;
-          }
-          ME=null;DB={users:{},posts:{}};
-          SESSION_READY=true;
-          clearCachedSession();
-          renderNav();renderList();renderExplore();renderJournal();
-        }
+        AUTH_SIGNING_OUT=false;
+        ME=null;DB={users:{},posts:{}};
+        SESSION_READY=true;
+        clearCachedSession();
+        renderNav();renderList();renderExplore();renderJournal();
       } else {
         if(!ME){
           var cachedState=restoreCachedSession();
