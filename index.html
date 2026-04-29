@@ -551,16 +551,16 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     <div class="hero-body">
       <div class="hero-eye">Georgia &middot; Tennessee &middot; North Carolina &middot; And Beyond</div>
       <h1 class="hero-h1">Every waterfall.<br><em>Every story.</em></h1>
-      <p class="hero-sub" id="hero-sub">Find the right waterfall before you head out, remember the trails you loved, and avoid wasting another Sunday on the wrong hike.</p>
+      <p class="hero-sub" id="hero-sub">Find the right waterfall, remember every favorite, and keep chasing the next one.</p>
       <div class="hero-ctas">
         <button class="cta-p" id="btn-map">Explore the Map</button>
-        <button class="cta-s" id="btn-auth-land">Keep Track of Your Favorite Trails • $3.99</button>
+        <button class="cta-s" id="btn-auth-land">Never Forget Where You've Been • $3.99</button>
       </div>
       <p class="hero-price-note"><strong>Introductory price:</strong> $3.99/month. Early members keep this price for life unless they cancel.</p>
       <div class="trust-strip">
         <div class="trust-pill"><span class="trust-num" id="trust-falls">...</span> waterfalls mapped</div>
         <div class="trust-pill"><span class="trust-num" id="trust-stories">0</span> real trail reports</div>
-        <div class="trust-pill">Map browsing is free</div>
+        <div class="trust-pill">Save waterfalls free</div>
       </div>
       <div class="home-tip" id="home-tip">
         <button class="home-tip-close" id="close-home-tip" aria-label="Dismiss tip">&times;</button>
@@ -577,14 +577,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
     </div>
   </div>
   <div class="feats-head">
-    <div class="feats-eye">How It Works</div>
-    <div class="feats-title" id="feats-title">Explore freely. Upgrade when you want to remember every favorite trail.</div>
-    <p class="feats-sub" id="feats-sub">The map and explorer stories are open to everyone. The paid journal is for the people who want less guesswork, fewer wasted outings, and a beautiful record of the waterfalls worth repeating.</p>
+    <div class="feats-eye">Why Subscribe</div>
+    <div class="feats-title" id="feats-title">Explore more falls. Remember every favorite. Keep chasing the next one.</div>
+    <p class="feats-sub" id="feats-sub">Browse and save waterfalls for free. Upgrade when you want one place to remember where you have been and what is still worth chasing.</p>
   </div>
   <div class="feats">
     <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#128506;</div><div class="feat-title">Interactive Map</div><p class="feat-desc">Browse waterfalls by region, state, distance, trail details, and directions so you can find the right outing before you ever leave home.</p></div>
     <div class="feat"><div class="feat-tag open">Open To Everyone</div><div class="feat-icon">&#127754;</div><div class="feat-title">Explorer Stories</div><p class="feat-desc">Read real trail stories, honest conditions, and lived experience from other explorers before you choose your next adventure.</p></div>
-    <div class="feat"><div class="feat-tag paid">Paid Members</div><div class="feat-icon">&#128211;</div><div class="feat-title">Personal Trail Journal</div><p class="feat-desc">Keep your own waterfall record with notes, photos, ratings, and memories, so you remember which trails became favorites and which ones were not worth another Sunday.</p></div>
+    <div class="feat"><div class="feat-tag paid">Paid Members</div><div class="feat-icon">&#128211;</div><div class="feat-title">Trail Journal & Stories</div><p class="feat-desc">Log every visit, keep your photos and notes together, never forget where you have been, and build your own record as you chase every waterfall worth finding.</p></div>
   </div>
   <div class="about-band">
     <div class="about-wrap">
@@ -607,8 +607,8 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   </div>
   <div class="land-cta">
     <h2>Never waste another waterfall day.</h2>
-    <p>Explore for free, then unlock your private trail journal to remember favorites, skip the duds, and keep your next adventure easy.</p>
-    <button class="cta-p" id="btn-auth-land2">Keep Track of Your Favorite Trails • $3.99</button>
+    <p>Explore and save for free, then unlock your journal so you never forget where you have been or what is still waiting for you.</p>
+    <button class="cta-p" id="btn-auth-land2">Log Your First Waterfall Story • $3.99</button>
   </div>
 </div>
 <div id="pg-map" class="page">
@@ -992,8 +992,8 @@ var FALLS_FALLBACK=[
   {id:"bridal_veil",name:"Bridal Veil Falls",region:"Habersham County",lat:34.6550,lng:-83.5720,height:"40 ft",diff:"Easy",type:"Veil",trail:"0.2 mi",fee:"Free",desc:"A delicate veil of water over a broad rock face along Highway 197."},
   {id:"yellow_branch",name:"Yellow Branch Falls",region:"Oconee County border",lat:34.8570,lng:-83.1530,height:"60 ft",diff:"Easy",type:"Plunge",trail:"1.8 mi",fee:"Free",desc:"A gorgeous 60-foot plunge near the Georgia-South Carolina border."},
 ];
-var FALLS_CACHE_KEY='falls_supabase_cache_v2';
-var FALLS_SYNC_KEY='falls_supabase_sync_v2';
+var FALLS_CACHE_KEY='falls_supabase_cache_v3';
+var FALLS_SYNC_KEY='falls_supabase_sync_v3';
 function restoreCachedFalls(){
   try{
     var raw=localStorage.getItem(FALLS_CACHE_KEY);
@@ -1263,24 +1263,24 @@ function renderLandingCtas(){
   if(trustFalls) trustFalls.textContent=String((FALLS||[]).length||0);
   if(trustStories) trustStories.textContent=String(Object.keys((DB&&DB.posts)||{}).length||0);
   if(btn1){
-    btn1.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Keep Track of Your Favorite Trails • $3.99':'Sign In For Your Journal');
+    btn1.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Never Forget Where You\'ve Been • $3.99':'Sign In For Your Journal');
   }
   if(btn2){
-    btn2.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Keep Track of Your Favorite Trails • $3.99':'Sign In For Your Journal');
+    btn2.textContent=(ME&&ME.is_pro)?'Open Your Journal':(ME?'Log Your First Waterfall Story • $3.99':'Sign In For Your Journal');
     btn2.style.display=(ME&&ME.is_pro)?'inline-block':'inline-block';
   }
   if(heroSub){
     heroSub.textContent=(ME&&ME.is_pro)
-      ? 'Your waterfall record is ready whenever you are. Jump back into your journal, saved plans, and badge progress.'
-      : 'Find the right waterfall before you head out, remember the trails you loved, and avoid wasting another Sunday on the wrong hike.';
+      ? 'Your waterfall record is ready. Jump back in and keep chasing the next one.'
+      : 'Find the right waterfall, remember every favorite, and keep chasing the next one.';
   }
   if(featsTitle && featsSub){
     featsTitle.textContent=(ME&&ME.is_pro)
       ? 'You already have the tools. Now keep building your trail record.'
-      : 'Explore freely. Upgrade when you want to remember every favorite trail.';
+      : 'Explore freely. Upgrade when you want to remember every favorite trail and keep chasing the next one.';
     featsSub.textContent=(ME&&ME.is_pro)
       ? 'Map browsing, stories, saved falls, and your journal work together so planning the next waterfall day feels easy.'
-      : 'The map and explorer stories are open to everyone. The paid journal is for the people who want less guesswork, fewer wasted outings, and a beautiful record of the waterfalls worth repeating.';
+      : 'The map and explorer stories are open to everyone. The paid journal is for the people who want less guesswork, fewer wasted outings, and a beautiful record of every waterfall they have found so far.';
   }
   if(ctaTitle && ctaCopy){
     if(ME&&ME.is_pro){
@@ -1288,7 +1288,7 @@ function renderLandingCtas(){
       ctaCopy.textContent='Jump back into your journal, badge vault, saved waterfall plans, and favorite trails.';
     } else {
       ctaTitle.textContent='Never waste another waterfall day.';
-      ctaCopy.textContent='Explore for free, then unlock your private trail journal to remember favorites, skip the duds, and keep your next adventure easy. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.';
+      ctaCopy.textContent='Explore for free, then unlock your journal so you never forget where you have been, what was worth the drive, and which falls are still waiting for you. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.';
     }
   }
 }
@@ -1442,43 +1442,25 @@ function rowIsVerifiedPublic(row){
   return isPublicOk && isVerifiedOk;
 }
 function mergeFalls(rows){
-  var merged={}, order=[], byMergeKey={};
   FALL_ALIASES={};
-  FALLS_FALLBACK.forEach(function(f){
-    var seeded=Object.assign({state:'GA',state_name:'Georgia'},f);
-    seeded.merge_key=slugify((seeded.state||seeded.state_name||'')+'_'+seeded.name);
-    merged[f.id]=seeded;
-    byMergeKey[seeded.merge_key]=f.id;
-    order.push(f.id);
-  });
-  (rows||[]).forEach(function(row){
-    var fall=normalizeFallRow(row);
-    if(!fall) return;
-    var existingId=byMergeKey[fall.merge_key];
-    if(existingId){
-      var canonicalId=fall.id||existingId;
-      var base=merged[existingId]||merged[canonicalId]||{};
-      merged[canonicalId]=Object.assign({},base,fall,{id:canonicalId,merge_key:fall.merge_key});
-      if(existingId!==canonicalId){
-        FALL_ALIASES[existingId]=canonicalId;
-        delete merged[existingId];
-        var orderIdx=order.indexOf(existingId);
-        if(orderIdx!==-1) order[orderIdx]=canonicalId;
-      }
-      FALL_ALIASES[fall.id]=canonicalId;
-      byMergeKey[fall.merge_key]=canonicalId;
-      return;
-    }
-    if(!merged[fall.id]) order.push(fall.id);
-    merged[fall.id]=Object.assign({},merged[fall.id]||{},fall);
-    byMergeKey[fall.merge_key]=fall.id;
-    FALL_ALIASES[fall.id]=fall.id;
-  });
-  var dedupedOrder=Array.from(new Set(order.map(canonicalFallId)));
-  FALLS=dedupedOrder.map(function(id){return merged[id];}).filter(Boolean).sort(function(a,b){
-    return a.name.localeCompare(b.name);
-  });
-  cacheFallsSnapshot(FALLS);
+  var normalized=(rows||[]).map(normalizeFallRow).filter(Boolean);
+  if(normalized.length){
+    var mergedById={}, orderedIds=[];
+    normalized.forEach(function(fall){
+      var fallId=String(fall.id||'').trim();
+      if(!fallId) return;
+      if(!mergedById[fallId]) orderedIds.push(fallId);
+      mergedById[fallId]=Object.assign({},mergedById[fallId]||{},fall);
+      FALL_ALIASES[fallId]=fallId;
+    });
+    FALLS=orderedIds.map(function(id){return mergedById[id];}).filter(Boolean).sort(function(a,b){
+      return a.name.localeCompare(b.name);
+    });
+    cacheFallsSnapshot(FALLS);
+    return;
+  }
+
+  FALLS=FALLS_FALLBACK.slice();
 }
 async function loadFallsFromSupabase(){
   try{
@@ -1948,6 +1930,10 @@ function mapPhotos(rows){
 }
 
 function rowToLog(r, photos){
+  var createdAt=r.created_at||"";
+  var updatedAt=r.updated_at||"";
+  var createdTs=createdAt?new Date(createdAt).getTime():0;
+  var updatedTs=updatedAt?new Date(updatedAt).getTime():0;
   return {
     rowId:r.id,
     date:r.date_visited||"",
@@ -1960,8 +1946,22 @@ function rowToLog(r, photos){
     rating:r.rating||0,
     privacy:r.visibility||"public",
     photos:(photos&&photos[r.id])||[],
-    ts:r.created_at?new Date(r.created_at).getTime():Date.now()
+    createdAt:createdAt,
+    updatedAt:updatedAt,
+    ts:createdTs||updatedTs||Date.now()
   };
+}
+function sortPublicPostsNewest(a,b){
+  var bTs=Number(b&&b.ts)||0;
+  var aTs=Number(a&&a.ts)||0;
+  if(bTs!==aTs) return bTs-aTs;
+  var bCreated=b&&b.createdAt?new Date(b.createdAt).getTime():0;
+  var aCreated=a&&a.createdAt?new Date(a.createdAt).getTime():0;
+  if(bCreated!==aCreated) return bCreated-aCreated;
+  var bDate=b&&b.date?String(b.date):'';
+  var aDate=a&&a.date?String(a.date):'';
+  if(bDate!==aDate) return bDate>aDate?1:-1;
+  return String(b&&b.id||'').localeCompare(String(a&&a.id||''));
 }
 
 async function refreshAllData(){
@@ -2024,7 +2024,7 @@ async function refreshAllData(){
       nextDB.posts[r.id]={
         id:r.id,userId:r.user_id,fallId:fallId,authorName:((nameMap&&nameMap[r.user_id])||((ME&&r.user_id===ME.id)?ME.name:'Hiker')),
         isFounder:!!founderMap[r.user_id],
-        date:log.date,ts:log.ts,rating:log.rating,condition:log.condition,water:log.water,loved:log.loved,improve:log.improve,
+        date:log.date,createdAt:log.createdAt,updatedAt:log.updatedAt,ts:log.ts,rating:log.rating,condition:log.condition,water:log.water,loved:log.loved,improve:log.improve,
         tips:log.tips,duration:log.duration,privacy:'public',photos:log.photos.slice(0,8),
         fallName:r.waterfall_name||(f?f.name:'Waterfall Visit'),fallRegion:f?f.region:'Georgia'
       };
@@ -2423,7 +2423,7 @@ function openWF(id,rowId){
   if(!ME){
     gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Members Get More</div><h3>Keep this fall on your radar</h3><p>Browse the map and read stories freely. Sign in when you are ready to build your own waterfall record and start collecting trail memories.</p><div class="wf-gate-perks"><span>Save future falls</span><span>Build your explorer profile</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
   } else if(!isPaid){
-    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Explorer Journal</div><h3>Turn this hike into part of your story</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build a beautiful personal record of every waterfall you chase. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><div class="wf-gate-perks"><span>Log every visit</span><span>Upload trail photos</span><span>Keep private notes</span><span>Build your badge journey</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Unlock Explorer Journal • $3.99</button></div></div>';
+    gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Explorer Journal</div><h3>Never forget this one</h3><p>Upgrade to log your visit, save trail notes, upload photos, and build a waterfall record you can come back to again and again. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><div class="wf-gate-perks"><span>Never forget where you\'ve been</span><span>Keep photos and notes together</span><span>Avoid repeating the duds</span><span>Keep chasing the next one</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-upgrade">Log Your First Waterfall Story • $3.99</button></div></div>';
   } else {
     gate.innerHTML='';
   }
@@ -2578,7 +2578,7 @@ async function delLog(){
 
 function renderExplore(){
   var grid=document.getElementById('ex-grid');
-  var posts=Object.values(DB.posts).filter(function(p){return p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;});
+  var posts=Object.values(DB.posts).filter(function(p){return p.privacy==='public';}).sort(sortPublicPostsNewest);
   var reportsLbl=document.getElementById('ex-reports-lbl');
   var exTitle=document.getElementById('ex-h1');
   var exSub=document.getElementById('ex-sub');
@@ -2677,7 +2677,7 @@ function renderJournal(){
   }
   if(!ME.is_pro){
     mast.innerHTML='';
-    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to unlock your private trail journal, saved logs, and badge progress. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Unlock Explorer Journal • $3.99</button></div>';
+    ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to remember where you have been, which waterfalls were worth it, and which ones are still left to chase. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Log Your First Waterfall Story • $3.99</button></div>';
     var ju=document.getElementById('jupgrade');if(ju)ju.addEventListener('click',upgradeToPro);
     return;
   }
@@ -2845,7 +2845,7 @@ function renderNav(){
           '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
           (ME.is_pro
             ? '<button class="btn-ghost" id="btn-manage-sub-nav" style="margin-left:8px">Manage Subscription</button>'
-            : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Unlock Explorer Journal • $3.99</button>') +
+            : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Never Forget Where You\'ve Been • $3.99</button>') +
         '</div>';
 
       var lo=document.getElementById('btn-lo');
@@ -2863,7 +2863,7 @@ function renderNav(){
     } else {
       el.innerHTML =
         '<button class="btn-ghost" id="btn-signin" style="margin-right:5px">Sign In</button>' +
-        '<button class="btn-gold" id="btn-upgrade">Unlock Explorer Journal • $3.99</button>';
+        '<button class="btn-gold" id="btn-upgrade">Log Your First Waterfall Story • $3.99</button>';
 
       var si=document.getElementById('btn-signin');
       var up=document.getElementById('btn-upgrade');
@@ -2878,11 +2878,15 @@ function renderNav(){
   renderLandingCtas();
 }
 var FALLS_REFRESHING=false;
+var FALLS_RESUME_LAST_AT=0;
 async function refreshFallsOnResume(force){
   if(FALLS_REFRESHING) return;
-  var shouldForce=!!force || FALLS.length<=FALLS_FALLBACK.length || fallsLastSyncAge()>5*60*1000;
+  var now=Date.now();
+  if(!force && now-FALLS_RESUME_LAST_AT<30000) return;
+  var shouldForce=!!force || FALLS.length<=FALLS_FALLBACK.length || fallsLastSyncAge()>60*1000;
   if(!shouldForce) return;
   FALLS_REFRESHING=true;
+  FALLS_RESUME_LAST_AT=now;
   try{
     await ensureFreshFalls(true);
   } catch(err){
@@ -2892,19 +2896,36 @@ async function refreshFallsOnResume(force){
   }
 }
 var TRAIL_REFRESHING=false;
+var TRAIL_RESUME_LAST_AT=0;
 async function refreshTrailOnResume(force){
   if(TRAIL_REFRESHING || !SESSION_READY) return;
+  var now=Date.now();
+  if(!force && now-TRAIL_RESUME_LAST_AT<30000) return;
   var hasPosts=DB && DB.posts && Object.keys(DB.posts).length;
   var hasUserLogs=!!(ME && DB && DB.users && DB.users[ME.id] && Object.keys((DB.users[ME.id]||{}).logs||{}).length);
   var shouldForce=!!force || !hasPosts || (!!ME && !hasUserLogs);
   if(!shouldForce) return;
   TRAIL_REFRESHING=true;
+  TRAIL_RESUME_LAST_AT=now;
   try{
     await refreshAllData();
   } catch(err){
     console.error('resume trail refresh failed:',err);
   } finally {
     TRAIL_REFRESHING=false;
+  }
+}
+var SESSION_RESUME_SYNCING=false;
+async function syncSessionOnResume(){
+  if(SESSION_RESUME_SYNCING) return;
+  SESSION_RESUME_SYNCING=true;
+  try{
+    await hydrateSession();
+  } catch(err){
+    console.error('resume session sync failed:',err);
+  } finally {
+    SESSION_RESUME_SYNCING=false;
+    renderNav();
   }
 }
 function showPage(nm){
@@ -3034,12 +3055,24 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Lightbox
   document.body.addEventListener('click',function(e){var i=e.target.closest('[data-lb]');if(i)showLb(i.dataset.lb);});
   document.getElementById('lb').addEventListener('click',function(){this.classList.remove('open');});
-  window.addEventListener('focus',function(){refreshFallsOnResume(false);refreshTrailOnResume(false);});
-  window.addEventListener('pageshow',function(){refreshFallsOnResume(false);refreshTrailOnResume(false);});
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'){
+  window.addEventListener('focus',function(){
+    syncSessionOnResume().then(function(){
       refreshFallsOnResume(false);
       refreshTrailOnResume(false);
+    });
+  });
+  window.addEventListener('pageshow',function(){
+    syncSessionOnResume().then(function(){
+      refreshFallsOnResume(true);
+      refreshTrailOnResume(true);
+    });
+  });
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'){
+      syncSessionOnResume().then(function(){
+        refreshFallsOnResume(false);
+        refreshTrailOnResume(false);
+      });
     }
   });
 
