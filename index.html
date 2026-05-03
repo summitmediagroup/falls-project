@@ -703,6 +703,13 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="fg"><label>What You Loved</label><textarea id="f-loved" placeholder="The mist, the solitude, the swimming hole..."></textarea></div>
       <div class="fg"><label>Could Be Better</label><textarea id="f-imp" placeholder="Parking, crowds, trail erosion..." style="min-height:54px"></textarea></div>
       <div class="fg"><label>Tips for Future Hikers</label><textarea id="f-tips" placeholder="Best season, gear, hidden spots..." style="min-height:54px"></textarea></div>
+      <div class="fg" id="wf-retag-wrap" style="display:none">
+        <label>Retag This Visit</label>
+        <select id="wf-retag-select">
+          <option value="">Choose the waterfall this visit belongs to...</option>
+        </select>
+        <div class="wf-form-note" id="wf-retag-note" style="margin-top:8px">This journal entry is still safe. Just reconnect it to the right waterfall and save again.</div>
+      </div>
       <div class="fg"><label>Photos &amp; Video</label>
         <div class="photo-zone"><input type="file" id="photo-inp" accept="image/*,video/*" multiple>
           <p>&#128247; Tap to add photos or short trail clips. Short mobile-friendly uploads work best.</p>
@@ -1103,6 +1110,57 @@ function getLogByRowId(id,rowId){
     if(logs[i] && logs[i].rowId===rowId) return logs[i];
   }
   return null;
+}
+function getAnyLogByRowId(rowId){
+  if(!(ME&&ME.id) || !rowId) return null;
+  var userLogs=((DB.users[ME.id]||{}).logs)||{};
+  var keys=Object.keys(userLogs);
+  for(var i=0;i<keys.length;i++){
+    var logs=userLogs[keys[i]]||[];
+    for(var j=0;j<logs.length;j++){
+      if(logs[j] && logs[j].rowId===rowId){
+        return {fallId:keys[i],log:logs[j]};
+      }
+    }
+  }
+  return null;
+}
+function findFallByName(name){
+  var target=String(name||'').trim().toLowerCase();
+  if(!target) return null;
+  var exact=FALLS.filter(function(f){return String(f.name||'').trim().toLowerCase()===target;});
+  return exact.length===1?exact[0]:null;
+}
+function populateRetagOptions(selectedId){
+  var select=document.getElementById('wf-retag-select');
+  if(!select) return;
+  var current=selectedId||select.value||'';
+  var options=['<option value="">Choose the waterfall this visit belongs to...</option>']
+    .concat(FALLS.slice().sort(function(a,b){
+      var an=(a.name||'')+' '+(a.region||'');
+      var bn=(b.name||'')+' '+(b.region||'');
+      return an.localeCompare(bn);
+    }).map(function(f){
+      return '<option value="'+esc(f.id)+'">'+esc(f.name+' — '+(f.region||f.state||''))+'</option>';
+    }));
+  select.innerHTML=options.join('');
+  select.value=current;
+}
+function setRetagUi(show, selectedId, originalName){
+  var wrap=document.getElementById('wf-retag-wrap');
+  var note=document.getElementById('wf-retag-note');
+  if(!wrap) return;
+  if(show){
+    populateRetagOptions(selectedId);
+    wrap.style.display='block';
+    if(note){
+      note.textContent=originalName
+        ? 'This entry was originally tied to "'+originalName+'." Pick the correct live waterfall, then save to reconnect it.'
+        : 'This entry lost its waterfall link. Pick the correct live waterfall, then save to reconnect it.';
+    }
+  } else {
+    wrap.style.display='none';
+  }
 }
 function getSavedFalls(){
   try{
@@ -2005,6 +2063,8 @@ function rowToLog(r, photos){
   var updatedTs=updatedAt?new Date(updatedAt).getTime():0;
   return {
     rowId:r.id,
+    waterfallId:r.waterfall_id||"",
+    waterfallName:r.waterfall_name||"Waterfall",
     date:r.date_visited||"",
     duration:r.duration||"",
     condition:r.trail_condition||"",
@@ -2384,12 +2444,32 @@ function renderCheckBeforeYouGo(f){
 
 function openWF(id,rowId){
   id=canonicalFallId(id);
-  wfId=id;
   editingLogRowId=rowId||null;
-  var f=FALLS.find(function(x){return x.id===id;});if(!f)return;
+  var fallbackEntry=!id && editingLogRowId?getAnyLogByRowId(editingLogRowId):null;
+  var f=FALLS.find(function(x){return x.id===id;});
+  var log=(editingLogRowId?(getLogByRowId(id,editingLogRowId)||(fallbackEntry&&fallbackEntry.log)):null);
+  if(!f && !log) return;
+  var matchedFall=!f && log?findFallByName(log.waterfallName):null;
+  var effectiveId=f?f.id:(matchedFall?matchedFall.id:'');
+  wfId=effectiveId;
+  if(!f){
+    f=matchedFall||{
+      id:'',
+      name:(log&&log.waterfallName)||'Waterfall',
+      region:'Needs Retagging',
+      desc:'This journal entry is still safe, but its original waterfall listing was removed or merged. Reconnect it below so it counts properly again.',
+      diff:'Unknown',
+      type:'Unknown',
+      height:'Unknown',
+      trail:'Unknown',
+      fee:'Unknown',
+      lat:null,
+      lng:null
+    };
+  }
   var logs=getLogs(id);
+  if(!logs.length && log) logs=[log];
   var latestLog=logs[0]||null;
-  var log=editingLogRowId?getLogByRowId(id,editingLogRowId):null;
   var isPaid=!!(ME&&ME.is_pro);
   var overview=buildWaterfallOverview(f);
   pPh=log&&log.photos?log.photos.map(mediaItem):[];
@@ -2398,19 +2478,19 @@ function openWF(id,rowId){
   document.getElementById('wf-reg').textContent=f.region;
   document.getElementById('wf-nm').textContent=f.name;
   document.getElementById('wf-desc').textContent=f.desc;
-  document.getElementById('wf-overview').innerHTML='<div class="wf-overview-kicker">Field Notes</div><div class="wf-overview-title">'+esc(overview.title)+'</div><div class="wf-overview-copy">'+esc(overview.copy)+'</div><div class="wf-overview-grid"><div class="wf-overview-item"><span>Best For</span><strong>'+esc(overview.fit)+'</strong></div><div class="wf-overview-item"><span>Trail Feel</span><strong>'+esc(overview.scene)+'</strong></div><div class="wf-overview-item"><span>Before You Go</span><strong>'+esc(overview.note)+'</strong></div><div class="wf-overview-item"><span>Explorer Hint</span><strong>'+(isSaved(id)?'Already on your saved list, ready whenever you are.':'Save this fall if it feels like a future road-trip kind of day.')+'</strong></div></div>';
+  document.getElementById('wf-overview').innerHTML='<div class="wf-overview-kicker">Field Notes</div><div class="wf-overview-title">'+esc(overview.title)+'</div><div class="wf-overview-copy">'+esc(overview.copy)+'</div><div class="wf-overview-grid"><div class="wf-overview-item"><span>Best For</span><strong>'+esc(overview.fit)+'</strong></div><div class="wf-overview-item"><span>Trail Feel</span><strong>'+esc(overview.scene)+'</strong></div><div class="wf-overview-item"><span>Before You Go</span><strong>'+esc(overview.note)+'</strong></div><div class="wf-overview-item"><span>Explorer Hint</span><strong>'+(effectiveId&&isSaved(effectiveId)?'Already on your saved list, ready whenever you are.':(!effectiveId?'Reconnect this visit to the right waterfall so it counts again.':'Save this fall if it feels like a future road-trip kind of day.'))+'</strong></div></div>';
   document.getElementById('wf-check').innerHTML=renderCheckBeforeYouGo(f);
-  var savedLabel=isSaved(id)?'Remove from Saved':'Save to Visit';
+  var savedLabel=effectiveId&&isSaved(effectiveId)?'Remove from Saved':'Save to Visit';
   document.getElementById('wf-actions').innerHTML=
-    '<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>'
-    +'<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
-    +'<a class="btn-out" href="'+appleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>';
+    (effectiveId?'<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>':'')
+    +(f.lat&&f.lng?'<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
+    +'<a class="btn-out" href="'+appleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>':'');
   var saveBtn=document.getElementById('btn-save-visit');
   if(saveBtn) saveBtn.addEventListener('click',function(e){
     e.stopPropagation();
-    var saved=toggleSaved(id);
+    var saved=toggleSaved(effectiveId);
     renderList();
-    openWF(id);
+    openWF(effectiveId);
     toast(saved?'Saved to your list':'Removed from saved');
   });
   var heroMeta=fallHeroMeta(f);
@@ -2427,7 +2507,7 @@ function openWF(id,rowId){
   }
   var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
   document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span><span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
-  var pubs=Object.values(DB.posts).filter(function(p){return p.fallId===id&&p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;}).slice(0,3);
+  var pubs=effectiveId?Object.values(DB.posts).filter(function(p){return p.fallId===effectiveId&&p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;}).slice(0,3):[];
   var ce=document.getElementById('wf-comm');
   if(pubs.length){
     var h='<div class="sec-hd">Explorer Stories From The Trail ('+pubs.length+')</div>';
@@ -2489,6 +2569,7 @@ function openWF(id,rowId){
   if(!log && latestLog && logs.length){
     xe.innerHTML+='<div class="wf-visit-note">You have logged this waterfall before. This form will save a brand new visit so you can keep seasonal memories, trail changes, and fresh photos.</div>';
   }
+  setRetagUi(!effectiveId || (log && log.waterfallId && canonicalFallId(log.waterfallId)!==effectiveId), effectiveId, log&&log.waterfallName?log.waterfallName:'');
   renderStars();renderPriv();renderPrev();
   if(!ME){
     gate.innerHTML='<div class="wf-gate"><div class="wf-gate-kicker">Members Get More</div><h3>Keep this fall on your radar</h3><p>Browse the map and read stories freely. Sign in when you are ready to build your own waterfall record and start collecting trail memories.</p><div class="wf-gate-perks"><span>Save future falls</span><span>Build your explorer profile</span></div><div class="wf-gate-actions"><button class="btn-gold" id="wf-gate-auth">Sign In to Start</button></div></div>';
@@ -2508,7 +2589,7 @@ function openWF(id,rowId){
   }
   var gateAuth=document.getElementById('wf-gate-auth');if(gateAuth)gateAuth.addEventListener('click',openAuth);
   var gateUpgrade=document.getElementById('wf-gate-upgrade');if(gateUpgrade)gateUpgrade.addEventListener('click',upgradeToPro);
-  if(MAP)MAP.panTo([f.lat,f.lng],{animate:true});
+  if(MAP && f.lat && f.lng)MAP.panTo([f.lat,f.lng],{animate:true});
   openOv('ov-wf');
 }
 
@@ -2573,12 +2654,24 @@ async function saveLog(){
     originalNote=note?note.textContent:'';
     setSaveUi('Saving...','Saving your trail notes...');
     persistCurrentDraft();
-    var ex=editingLogRowId?getLogByRowId(wfId,editingLogRowId):null;
+    var ex=editingLogRowId?(getLogByRowId(wfId,editingLogRowId)||((getAnyLogByRowId(editingLogRowId)||{}).log||null)):null;
     var isUpdate=!!(ex&&ex.rowId);
-    var f=FALLS.find(function(x){return x.id===wfId;});
+    var retagSelect=document.getElementById('wf-retag-select');
+    var selectedFallId=(retagSelect && retagSelect.closest('#wf-retag-wrap') && retagSelect.closest('#wf-retag-wrap').style.display!=='none')
+      ? canonicalFallId(retagSelect.value)
+      : canonicalFallId(wfId);
+    if(!selectedFallId){
+      toast('Choose the correct waterfall before saving this visit.');
+      return;
+    }
+    var f=FALLS.find(function(x){return x.id===selectedFallId;});
+    if(!f){
+      toast('That waterfall could not be found. Please choose another one.');
+      return;
+    }
     var payload={
       user_id:ME.id,
-      waterfall_id:wfId,
+      waterfall_id:selectedFallId,
       waterfall_name:f?f.name:'Waterfall',
       date_visited:document.getElementById('f-date').value||null,
       duration:document.getElementById('f-dur').value||'',
@@ -2607,9 +2700,10 @@ async function saveLog(){
       setSaveUi('Finishing...','Wrapping up your journal entry...');
     }
     await uploadPhotosForLog(rowId);
-    clearDraftFor(wfId);
+    clearDraftFor(wfId||selectedFallId);
     closeOv('ov-wf');
     editingLogRowId=null;
+    wfId=selectedFallId;
     toast(isUpdate?'Trail journal updated for '+(f?f.name:'this waterfall'):'Added a new visit to your trail journal: '+(f?f.name:'this waterfall'));
     refreshAllData().then(function(){
       renderNav();
@@ -2699,8 +2793,8 @@ function openPost(pid){
 
 function openJournalEntry(fallId,rowId){
   var id=canonicalFallId(fallId);
-  var f=FALLS.find(function(x){return x.id===id;})||{name:'Waterfall',region:''};
-  var log=getLogByRowId(id,rowId);
+  var log=getLogByRowId(id,rowId)||(getAnyLogByRowId(rowId)||{}).log||null;
+  var f=FALLS.find(function(x){return x.id===id;})||findFallByName(log&&log.waterfallName)||{name:(log&&log.waterfallName)||'Waterfall',region:''};
   if(!log){
     openWF(id,rowId);
     return;
@@ -2802,7 +2896,7 @@ function renderJournal(){
   if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
   ent.innerHTML='';
   logs.forEach(function(e){
-    var f=FALLS.find(function(x){return x.id===e.id;})||{name:'Waterfall',region:''};
+    var f=FALLS.find(function(x){return x.id===e.id;})||findFallByName(e.log&&e.log.waterfallName)||{name:(e.log&&e.log.waterfallName)||'Waterfall',region:'Needs Retagging'};
     var hero=e.log.photos&&e.log.photos[0]?e.log.photos[0]:fallHeroMeta(FALLS.find(function(x){return x.id===e.id;})||{id:e.id}).src;
     var exc=e.log.loved||e.log.tips||e.log.improve||'';
     var d=document.createElement('div');d.className='je';
