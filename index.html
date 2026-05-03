@@ -705,9 +705,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
       <div class="fg"><label>Tips for Future Hikers</label><textarea id="f-tips" placeholder="Best season, gear, hidden spots..." style="min-height:54px"></textarea></div>
       <div class="fg" id="wf-retag-wrap" style="display:none">
         <label>Retag This Visit</label>
-        <select id="wf-retag-select">
-          <option value="">Choose the waterfall this visit belongs to...</option>
-        </select>
+        <input type="text" id="wf-retag-search" list="wf-retag-options" placeholder="Search by waterfall name or county...">
+        <datalist id="wf-retag-options"></datalist>
+        <input type="hidden" id="wf-retag-select" value="">
         <div class="wf-form-note" id="wf-retag-note" style="margin-top:8px">This journal entry is still safe. Just reconnect it to the right waterfall and save again.</div>
       </div>
       <div class="fg"><label>Photos &amp; Video</label>
@@ -1131,32 +1131,143 @@ function findFallByName(name){
   var exact=FALLS.filter(function(f){return String(f.name||'').trim().toLowerCase()===target;});
   return exact.length===1?exact[0]:null;
 }
+function normalizeRetagKey(value){
+  return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+function simplifyWaterfallName(value){
+  return normalizeRetagKey(value).replace(/\b(falls|fall|waterfall|waterfalls)\b/g,' ').replace(/\s+/g,' ').trim();
+}
+function editDistance(a,b){
+  a=String(a||'');
+  b=String(b||'');
+  if(a===b) return 0;
+  if(!a) return b.length;
+  if(!b) return a.length;
+  var dp=new Array(b.length+1);
+  for(var j=0;j<=b.length;j++) dp[j]=j;
+  for(var i=1;i<=a.length;i++){
+    var prev=dp[0];
+    dp[0]=i;
+    for(var k=1;k<=b.length;k++){
+      var tmp=dp[k];
+      if(a.charAt(i-1)===b.charAt(k-1)) dp[k]=prev;
+      else dp[k]=Math.min(prev+1, dp[k]+1, dp[k-1]+1);
+      prev=tmp;
+    }
+  }
+  return dp[b.length];
+}
+function retagOptionLabel(f){
+  return (f.name||'Waterfall')+' — '+(f.region||f.state||'');
+}
+function buildRetagMatchMaps(){
+  var byLabel={};
+  var byName={};
+  var byNormName={};
+  FALLS.forEach(function(f){
+    var label=retagOptionLabel(f);
+    byLabel[label.toLowerCase()]=f;
+    var nameKey=String(f.name||'').trim().toLowerCase();
+    var normKey=normalizeRetagKey(f.name||'');
+    if(nameKey){
+      if(!byName[nameKey]) byName[nameKey]=[];
+      byName[nameKey].push(f);
+    }
+    if(normKey){
+      if(!byNormName[normKey]) byNormName[normKey]=[];
+      byNormName[normKey].push(f);
+    }
+  });
+  return {byLabel:byLabel,byName:byName,byNormName:byNormName};
+}
+function findBestRetagMatch(name){
+  var raw=String(name||'').trim();
+  if(!raw) return null;
+  var maps=buildRetagMatchMaps();
+  var exactName=maps.byName[raw.toLowerCase()];
+  if(exactName && exactName.length===1) return exactName[0];
+  var normName=maps.byNormName[normalizeRetagKey(raw)];
+  if(normName && normName.length===1) return normName[0];
+  var simpleRaw=simplifyWaterfallName(raw);
+  if(simpleRaw){
+    var best=null,bestDistance=Infinity,tied=false;
+    FALLS.forEach(function(f){
+      var simpleName=simplifyWaterfallName(f.name||'');
+      if(!simpleName) return;
+      var dist=editDistance(simpleRaw,simpleName);
+      if(dist<bestDistance){
+        best=f;
+        bestDistance=dist;
+        tied=false;
+      } else if(dist===bestDistance){
+        tied=true;
+      }
+    });
+    if(best && !tied && bestDistance<=2) return best;
+  }
+  return null;
+}
+function syncRetagSelectionFromInput(){
+  var search=document.getElementById('wf-retag-search');
+  var hidden=document.getElementById('wf-retag-select');
+  if(!search || !hidden) return '';
+  var maps=buildRetagMatchMaps();
+  var raw=String(search.value||'').trim();
+  var byLabel=maps.byLabel[raw.toLowerCase()];
+  if(byLabel){
+    hidden.value=byLabel.id;
+    return byLabel.id;
+  }
+  var exactName=maps.byName[raw.toLowerCase()];
+  if(exactName && exactName.length===1){
+    hidden.value=exactName[0].id;
+    search.value=retagOptionLabel(exactName[0]);
+    return exactName[0].id;
+  }
+  var normName=maps.byNormName[normalizeRetagKey(raw)];
+  if(normName && normName.length===1){
+    hidden.value=normName[0].id;
+    search.value=retagOptionLabel(normName[0]);
+    return normName[0].id;
+  }
+  hidden.value='';
+  return '';
+}
 function populateRetagOptions(selectedId){
-  var select=document.getElementById('wf-retag-select');
-  if(!select) return;
-  var current=selectedId||select.value||'';
-  var options=['<option value="">Choose the waterfall this visit belongs to...</option>']
-    .concat(FALLS.slice().sort(function(a,b){
-      var an=(a.name||'')+' '+(a.region||'');
-      var bn=(b.name||'')+' '+(b.region||'');
-      return an.localeCompare(bn);
-    }).map(function(f){
-      return '<option value="'+esc(f.id)+'">'+esc(f.name+' — '+(f.region||f.state||''))+'</option>';
-    }));
-  select.innerHTML=options.join('');
-  select.value=current;
+  var search=document.getElementById('wf-retag-search');
+  var hidden=document.getElementById('wf-retag-select');
+  var list=document.getElementById('wf-retag-options');
+  if(!search || !hidden || !list) return;
+  var current=selectedId||hidden.value||'';
+  list.innerHTML=FALLS.slice().sort(function(a,b){
+    var an=(a.name||'')+' '+(a.region||'');
+    var bn=(b.name||'')+' '+(b.region||'');
+    return an.localeCompare(bn);
+  }).map(function(f){
+    return '<option value="'+esc(retagOptionLabel(f))+'"></option>';
+  }).join('');
+  hidden.value=current;
+  if(current){
+    var f=FALLS.find(function(row){return row.id===current;});
+    search.value=f?retagOptionLabel(f):'';
+  } else {
+    search.value='';
+  }
+  search.oninput=syncRetagSelectionFromInput;
+  search.onchange=syncRetagSelectionFromInput;
 }
 function setRetagUi(show, selectedId, originalName){
   var wrap=document.getElementById('wf-retag-wrap');
   var note=document.getElementById('wf-retag-note');
   if(!wrap) return;
   if(show){
-    populateRetagOptions(selectedId);
+    var autoSelected=selectedId||findBestRetagMatch(originalName||'');
+    populateRetagOptions(autoSelected?autoSelected.id||autoSelected:autoSelected);
     wrap.style.display='block';
     if(note){
       note.textContent=originalName
-        ? 'This entry was originally tied to "'+originalName+'." Pick the correct live waterfall, then save to reconnect it.'
-        : 'This entry lost its waterfall link. Pick the correct live waterfall, then save to reconnect it.';
+        ? 'This entry was originally tied to "'+originalName+'." '+(autoSelected?'We pre-matched the most likely live waterfall for you. Double-check it, then save.':'Search for the correct live waterfall, then save to reconnect it.')
+        : 'This entry lost its waterfall link. Search for the correct live waterfall, then save to reconnect it.';
     }
   } else {
     wrap.style.display='none';
@@ -2142,8 +2253,19 @@ async function refreshAllData(){
     }
   }
   rows.forEach(function(r){
-    var fallId=canonicalFallId(r.waterfall_id);
+    var rawFallId=String(r.waterfall_id||'').trim();
+    var fallId=canonicalFallId(rawFallId);
     var f=FALLS.find(function(x){return x.id===fallId;});
+    if(!f){
+      var autoMatchedFall=findBestRetagMatch(r.waterfall_name||'');
+      if(autoMatchedFall){
+        fallId=autoMatchedFall.id;
+        f=autoMatchedFall;
+        if(rawFallId && rawFallId!==fallId){
+          FALL_ALIASES[rawFallId]=fallId;
+        }
+      }
+    }
     var log=rowToLog(r,photos);
     if(ME && r.user_id===ME.id){
       if(!nextDB.users[ME.id].logs[fallId]) nextDB.users[ME.id].logs[fallId]=[];
@@ -2445,7 +2567,7 @@ function renderCheckBeforeYouGo(f){
 function openWF(id,rowId){
   id=canonicalFallId(id);
   editingLogRowId=rowId||null;
-  var fallbackEntry=!id && editingLogRowId?getAnyLogByRowId(editingLogRowId):null;
+  var fallbackEntry=editingLogRowId?getAnyLogByRowId(editingLogRowId):null;
   var f=FALLS.find(function(x){return x.id===id;});
   var log=(editingLogRowId?(getLogByRowId(id,editingLogRowId)||(fallbackEntry&&fallbackEntry.log)):null);
   if(!f && !log) return;
@@ -2467,7 +2589,7 @@ function openWF(id,rowId){
       lng:null
     };
   }
-  var logs=getLogs(id);
+  var logs=getLogs(effectiveId||id);
   if(!logs.length && log) logs=[log];
   var latestLog=logs[0]||null;
   var isPaid=!!(ME&&ME.is_pro);
@@ -2657,6 +2779,7 @@ async function saveLog(){
     var ex=editingLogRowId?(getLogByRowId(wfId,editingLogRowId)||((getAnyLogByRowId(editingLogRowId)||{}).log||null)):null;
     var isUpdate=!!(ex&&ex.rowId);
     var retagSelect=document.getElementById('wf-retag-select');
+    syncRetagSelectionFromInput();
     var selectedFallId=(retagSelect && retagSelect.closest('#wf-retag-wrap') && retagSelect.closest('#wf-retag-wrap').style.display!=='none')
       ? canonicalFallId(retagSelect.value)
       : canonicalFallId(wfId);
@@ -2828,7 +2951,7 @@ function openJournalEntry(fallId,rowId){
     +'<p class="post-story-intro">'+esc(intro)+'</p>'
     +gallery
     +sections
-    +'<div class="post-cta"><button class="btn-out" data-editvisit="'+esc(id)+'" data-rowid="'+esc(rowId)+'">Edit This Visit</button><button class="btn-out" data-goto="'+esc(id)+'">View Waterfall</button></div>';
+    +'<div class="post-cta"><button class="btn-out" data-editvisit="'+esc(id)+'" data-rowid="'+esc(rowId)+'">Edit This Visit</button><button class="btn-out" data-goto="'+esc(id)+'" data-rowid="'+esc(rowId)+'">View Waterfall</button></div>';
   openOv('ov-post');
 }
 
@@ -3224,7 +3347,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     var b=e.target.closest('[data-goto]');
     if(b){
       closeOv('ov-post');
-      openWF(b.dataset.goto);
+      openWF(b.dataset.goto,b.dataset.rowid||null);
     }
   });
   // Lightbox
