@@ -2099,6 +2099,15 @@ async function requireLiveSession(){
   if(session && session.user) return session;
   throw new Error('Please sign in again before saving this visit.');
 }
+async function ensureWritableSession(){
+  try{
+    return await requireLiveSession();
+  } catch(err){
+    console.error('initial save session check failed:',err);
+    await syncSessionOnResume();
+    return await requireLiveSession();
+  }
+}
 
 async function ensureProfile(user){
   var email=normalizeEmail(user.email);
@@ -2769,11 +2778,12 @@ async function saveLog(){
     }
   }
   try{
-    if(!ME){openAuth();return;}
-    await requireLiveSession();
     btn=document.getElementById('btn-save-log');
     note=document.getElementById('wf-form-note');
     originalNote=note?note.textContent:'';
+    if(!ME){openAuth();return;}
+    setSaveUi('Checking Session...','Making sure your account is still connected...');
+    await ensureWritableSession();
     setSaveUi('Saving...','Saving your trail notes...');
     persistCurrentDraft();
     var ex=editingLogRowId?(getLogByRowId(wfId,editingLogRowId)||((getAnyLogByRowId(editingLogRowId)||{}).log||null)):null;
@@ -2808,11 +2818,23 @@ async function saveLog(){
     };
     var rowId=ex&&ex.rowId;
     if(rowId){
-      var up=await sb.from('waterfall_logs').update(payload).eq('id',rowId).eq('user_id',ME.id).select('id').single();
+      var up=await withRetry(function(attempt){
+        return withTimeout(
+          sb.from('waterfall_logs').update(payload).eq('id',rowId).eq('user_id',ME.id).select('id').single(),
+          15000,
+          attempt===0?'Saving timed out. Retrying...':'Saving took too long. Please try again.'
+        );
+      },2,800);
       if(up.error) throw up.error;
       rowId=up.data.id;
     } else {
-      var ins=await sb.from('waterfall_logs').insert(payload).select('id').single();
+      var ins=await withRetry(function(attempt){
+        return withTimeout(
+          sb.from('waterfall_logs').insert(payload).select('id').single(),
+          15000,
+          attempt===0?'Saving timed out. Retrying...':'Saving took too long. Please try again.'
+        );
+      },2,800);
       if(ins.error) throw ins.error;
       rowId=ins.data.id;
     }
