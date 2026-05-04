@@ -1037,7 +1037,14 @@ var FALLS=restoreCachedFalls()||FALLS_FALLBACK.slice();
 
 var SUPABASE_URL="https://olmelhdlyyhbkbrdzrtf.supabase.co";
 var SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sbWVsaGRseXloYmticmR6cnRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODE4NTMsImV4cCI6MjA4OTc1Nzg1M30.GK9TQ06Mbbj1LMQHr7WKwcfVmGiLgf5eFc6Zak9gZkQ";
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
+  auth:{
+    storageKey:'falls-auth-ephemeral',
+    persistSession:false,
+    autoRefreshToken:false,
+    detectSessionInUrl:false
+  }
+});
 var sbPublic = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
   auth:{
     storageKey:'falls-public-auth',
@@ -1346,19 +1353,10 @@ function applyDraftToForm(draft){
   return true;
 }
 function cacheSessionSnapshot(){
-  try{
-    if(ME) localStorage.setItem(SESSION_CACHE_KEY,JSON.stringify(ME));
-  } catch(err){}
+  return;
 }
 function restoreCachedSession(){
-  try{
-    var raw=localStorage.getItem(SESSION_CACHE_KEY);
-    if(!raw) return null;
-    var parsed=JSON.parse(raw);
-    return parsed&&parsed.id&&parsed.email?parsed:null;
-  } catch(err){
-    return null;
-  }
+  return null;
 }
 function clearCachedSession(){
   try{localStorage.removeItem(SESSION_CACHE_KEY);}catch(err){}
@@ -2140,7 +2138,6 @@ async function ensureProfile(user){
 }
 
 async function hydrateSession(){
-  var cached=restoreCachedSession();
   try{
     var s=await withTimeout(sb.auth.getSession(),12000,'Session check timed out');
     var user=s.data&&s.data.session&&s.data.session.user;
@@ -2154,12 +2151,6 @@ async function hydrateSession(){
     var isFounder=await isFoundingExplorer(prof);
     setMeFromProfile(user, prof, isFounder);
   } catch(err){
-    if(cached){
-      ME=cached;
-      SESSION_READY=true;
-      console.error('hydrateSession recovered from cache:',err);
-      return;
-    }
     ME=null;
     clearCachedSession();
     SESSION_READY=true;
@@ -3135,13 +3126,39 @@ async function doResetPassword(){
     console.error(err);toast(err && err.message ? err.message : 'Could not send reset email');
   }
 }
-async function doLogout(){
+async function doLogout(e){
+  if(e && e.preventDefault) e.preventDefault();
+  if(AUTH_SIGNING_OUT) return;
   AUTH_SIGNING_OUT=true;
-  await sb.auth.signOut();
-  ME=null;DB={users:{},posts:{}};
-  SESSION_READY=true;
-  clearCachedSession();
-  renderNav();renderList();renderJournal();renderExplore();FALLS.forEach(function(f){refreshMk(f.id);});toast('Signed out');
+  try{
+    var logoutBtn=document.getElementById('btn-lo');
+    if(logoutBtn){
+      logoutBtn.disabled=true;
+      logoutBtn.textContent='Signing Out...';
+    }
+    ME=null;
+    DB=restoreCachedTrailData(null)||{users:{},posts:{}};
+    SESSION_READY=true;
+    clearCachedSession();
+    clearSupabaseAuthState();
+    renderNav();renderLandingCtas();renderList();renderJournal();renderExplore();FALLS.forEach(function(f){refreshMk(f.id);});
+    closeOv('ov-wf');
+    closeOv('ov-post');
+    closeOv('ov-auth');
+    toast('Signed out');
+    try{
+      await Promise.race([
+        sb.auth.signOut(),
+        new Promise(function(_, reject){
+          setTimeout(function(){reject(new Error('sign out timeout'));}, 5000);
+        })
+      ]);
+    } catch(err){
+      console.error('remote sign out was slow, local sign out completed:',err);
+    }
+  } finally {
+    AUTH_SIGNING_OUT=false;
+  }
 }
 function renderNav(){
   try {
@@ -3153,7 +3170,7 @@ function renderNav(){
         '<div class="nav-user">' +
           '<div class="nav-av">'+esc((ME.name||ME.email||'U')[0].toUpperCase())+'</div>' +
           '<span class="auth-name">'+esc(ME.name||ME.email)+'</span>' +
-          '<button class="btn-ghost" id="btn-lo">Sign Out</button>' +
+          '<button class="btn-ghost" id="btn-lo" type="button">Sign Out</button>' +
           (ME.is_pro
             ? '<button class="btn-ghost" id="btn-manage-sub-nav" style="margin-left:8px">Manage Subscription</button>'
             : '<button class="btn-gold" id="btn-upgrade" style="margin-left:8px">Never Forget Where You\'ve Been • $3.99</button>') +
@@ -3433,12 +3450,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 (async function(){
   try {
-    var bootCached=restoreCachedSession();
-    if(bootCached) ME=bootCached;
-    if(ME){
-      var userTrailCache=restoreCachedTrailData(ME.id);
-      if(userTrailCache) DB=userTrailCache;
-    }
+    clearCachedSession();
+    clearSupabaseAuthState();
     renderNav();
     renderList();
     renderExplore();
