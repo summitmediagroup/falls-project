@@ -178,6 +178,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .chip.h{border-color:rgba(200,80,40,.4);color:rgba(200,120,80,.9);}
 .chip.w{border-color:rgba(74,124,150,.4);color:var(--ice);}
 .chip.s{border-color:rgba(200,150,60,.35);color:var(--gold);}
+.chip.d{border-color:rgba(123,175,120,.42);color:rgba(188,232,170,.92);}
 .fi-date{font-size:.57rem;color:var(--gold);margin-top:3px;}
 .fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;}
 .fi video.fi-thumb{width:50px;height:50px;object-fit:cover;align-self:center;margin:8px 10px 8px 0;flex-shrink:0;border:1px solid rgba(200,150,60,.2);opacity:.8;background:var(--raised);}
@@ -346,6 +347,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .wchip.h{border-color:rgba(200,80,40,.4);color:rgba(200,120,80,.9);}
 .wchip.w{border-color:rgba(74,124,150,.4);color:var(--ice);}
 .wchip.g{border-color:rgba(200,150,60,.4);color:var(--gold);}
+.wchip.d{border-color:rgba(123,175,120,.42);color:rgba(188,232,170,.92);}
 .wf-desc{font-size:.8rem;line-height:1.72;color:rgba(255,255,255,.62);margin-bottom:20px;}
 .wf-overview{background:linear-gradient(180deg,rgba(38,57,44,.48),rgba(17,28,22,.88));border:1px solid rgba(174,204,147,.16);padding:16px 16px 14px;margin:-2px 0 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
 .wf-overview-kicker{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:#cfb06f;margin-bottom:6px;}
@@ -1547,6 +1549,7 @@ function normalizeFallRow(row){
   var region=String(pickFirst(row,['region','county','location','area'])||'').trim();
   var stateInfo=normalizeState(pickFirst(row,['state','state_code']));
   var regionLabel=region || stateInfo.name || 'Waterfall Region';
+  var dogFriendly=String(pickFirst(row,['dog_friendly','dogfriendly','dogs'])||'').trim().toLowerCase();
   return {
     id:id||mkid(),
     merge_key:slugify((stateInfo.code||stateInfo.name||'')+'_'+String(name).trim()),
@@ -1571,8 +1574,16 @@ function normalizeFallRow(row){
     image_credit_url:String(pickFirst(row,['image_credit_url','credit_url','image_source_url'])||'').trim(),
     agency_name:String(pickFirst(row,['agency_name','managing_agency','agency'])||'').trim(),
     agency_conditions_url:String(pickFirst(row,['agency_conditions_url','conditions_url','alerts_url','agency_url'])||'').trim(),
-    agency_phone:String(pickFirst(row,['agency_phone','phone','contact_phone'])||'').trim()
+    agency_phone:String(pickFirst(row,['agency_phone','phone','contact_phone'])||'').trim(),
+    dog_friendly:dogFriendly
   };
+}
+function dogFriendlyChipLabel(value){
+  var v=String(value||'').trim().toLowerCase();
+  if(v==='yes' || v==='true' || v==='1') return 'Dog Friendly';
+  if(v==='leashed only' || v==='leashed') return 'Dogs on Leash';
+  if(v==='no') return 'No Dogs';
+  return '';
 }
 function rowFlagValue(row, keys){
   for(var i=0;i<keys.length;i++){
@@ -2417,10 +2428,11 @@ function renderList(){
     var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
     var thumb=log&&log.photos&&log.photos[0]?mediaThumbMarkup(log.photos[0],'','fi-thumb'):'<img class="fi-thumb" src="'+fallHeroMeta(f).src+'" style="opacity:.3">';
     var near=USER_POS?'<span class="chip">'+esc(milesBetween(USER_POS.lat,USER_POS.lng,f.lat,f.lng).toFixed(0)+' mi away')+'</span>':'';
+    var dogChipLabel=dogFriendlyChipLabel(f.dog_friendly);
     var d=document.createElement('div');d.className='fi'+(v?' done':'');
     d.innerHTML='<div class="fi-body"><div class="fi-name">'+esc(f.name)+'</div><div class="fi-reg">'+esc(f.region)+'</div>'
       +'<div class="fi-chips"><span class="chip '+hc+'">'+esc(f.diff)+'</span><span class="chip w">'+esc(f.type)+'</span>'
-      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span>'+(saved?'<span class="chip s">Saved</span>':'')+near+'</div>'
+      +'<span class="chip">'+esc(f.height)+'</span><span class="chip">'+esc(f.trail)+'</span>'+(dogChipLabel?'<span class="chip d">'+esc(dogChipLabel)+'</span>':'')+(saved?'<span class="chip s">Saved</span>':'')+near+'</div>'
       +(log?'<div class="fi-date">&#10003; '+esc(log.date||'visited')+(log.rating?' &middot; ' + '&#9733;'.repeat(log.rating):'')+'</div>':'')
       +'</div>'+thumb+'<div class="fi-tick">&#10003;</div>';
     d.addEventListener('click',function(){openWF(f.id);});
@@ -2628,7 +2640,8 @@ function openWF(id,rowId){
     }
   }
   var hc=(f.diff==='Strenuous'||f.diff==='Moderate')?'h':'';
-  document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span><span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
+  var dogChipLabel=dogFriendlyChipLabel(f.dog_friendly);
+  document.getElementById('wf-chips').innerHTML='<span class="wchip '+hc+'">'+esc(f.diff)+'</span><span class="wchip w">'+esc(f.type)+'</span><span class="wchip">'+esc(f.height)+'</span><span class="wchip">'+esc(f.trail)+' round trip</span>'+(dogChipLabel?'<span class="wchip d">'+esc(dogChipLabel)+'</span>':'')+'<span class="wchip g">'+(f.fee==='Free'?'No Fee':'Fee: '+esc(f.fee))+'</span>';
   var pubs=effectiveId?Object.values(DB.posts).filter(function(p){return p.fallId===effectiveId&&p.privacy==='public';}).sort(function(a,b){return b.ts-a.ts;}).slice(0,3):[];
   var ce=document.getElementById('wf-comm');
   if(pubs.length){
