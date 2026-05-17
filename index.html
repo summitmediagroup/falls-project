@@ -447,6 +447,10 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-hero-bg video{flex:1;object-fit:cover;min-width:0;filter:brightness(.62) saturate(.75);}
 .post-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(12,20,16,1) 0%,rgba(12,20,16,.3) 55%,transparent 100%);}
 .post-hero-info{position:absolute;bottom:18px;left:22px;right:56px;}
+.post-hero-nav{position:absolute;top:50%;left:12px;right:12px;display:none;align-items:center;justify-content:space-between;transform:translateY(-50%);pointer-events:none;z-index:3;}
+.post-hero-arrow{pointer-events:auto;width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(7,12,10,.42);color:var(--cream);font-size:1.2rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.post-hero-arrow:hover{border-color:rgba(200,150,60,.4);color:var(--gold);background:rgba(23,36,29,.62);}
+.post-hero-arrow:disabled{opacity:.28;cursor:default;color:rgba(255,255,255,.42);}
 .ph-wf{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
 .ph-title{font-family:"Cormorant",serif;font-size:1.5rem;font-weight:300;color:var(--white);line-height:1.15;}
 .post-bd{padding:18px 22px 24px;}
@@ -779,6 +783,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 <div class="modal" id="m-post">
   <button class="mx" id="close-post">&times;</button>
   <div class="post-hero"><div class="post-hero-bg" id="post-bg"></div><div class="post-hero-grad"></div>
+    <div class="post-hero-nav" id="post-hero-nav"><button class="post-hero-arrow" id="post-hero-prev" aria-label="Previous journal entry">&larr;</button><button class="post-hero-arrow" id="post-hero-next" aria-label="Next journal entry">&rarr;</button></div>
     <div class="post-hero-info"><div class="ph-wf" id="ph-wf"></div><div class="ph-title" id="ph-title"></div></div>
   </div>
   <div class="post-bd" id="post-bd"></div>
@@ -2995,6 +3000,8 @@ function renderExplore(){
 
 function openPost(pid){
   var p=DB.posts[pid];if(!p)return;
+  var heroNav=document.getElementById('post-hero-nav');
+  if(heroNav) heroNav.style.display='none';
   document.getElementById('ph-wf').textContent=p.fallRegion||'Georgia';
   document.getElementById('ph-title').textContent=p.fallName||'Waterfall Visit';
   var hbg=document.getElementById('post-bg');
@@ -3063,6 +3070,18 @@ function openJournalEntry(fallId,rowId){
   }
   var hasPrev=currentIndex>0;
   var hasNext=currentIndex>=0 && currentIndex<JOURNAL_NAV_ORDER.length-1;
+  var heroNav=document.getElementById('post-hero-nav');
+  var heroPrev=document.getElementById('post-hero-prev');
+  var heroNext=document.getElementById('post-hero-next');
+  if(heroNav) heroNav.style.display=JOURNAL_NAV_ORDER.length>1?'flex':'none';
+  if(heroPrev){
+    heroPrev.disabled=!hasPrev;
+    heroPrev.onclick=function(){openAdjacentJournalEntry(-1);};
+  }
+  if(heroNext){
+    heroNext.disabled=!hasNext;
+    heroNext.onclick=function(){openAdjacentJournalEntry(1);};
+  }
   var navHtml=JOURNAL_NAV_ORDER.length>1
     ? '<div class="post-nav"><div class="post-nav-meta"><div class="post-nav-kicker">Journal Navigation</div><div class="post-nav-copy">Tap the arrows to move through your saved visits.</div></div><div class="post-nav-actions"><button class="post-nav-btn arrow" id="post-prev-log" aria-label="Previous journal entry"'+(hasPrev?'':' disabled')+'>&larr;</button><button class="post-nav-btn" id="post-prev-log-text"'+(hasPrev?'':' disabled')+'>Previous</button><button class="post-nav-btn" id="post-next-log-text"'+(hasNext?'':' disabled')+'>Next</button><button class="post-nav-btn arrow" id="post-next-log" aria-label="Next journal entry"'+(hasNext?'':' disabled')+'>&rarr;</button></div></div>'
     : '';
