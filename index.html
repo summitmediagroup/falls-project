@@ -474,6 +474,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-nav-btn{padding:8px 11px;background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,.12);font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
 .post-nav-btn:hover{border-color:rgba(200,150,60,.34);color:var(--gold);}
 .post-nav-btn:disabled{opacity:.35;cursor:default;border-color:rgba(255,255,255,.08);color:rgba(255,255,255,.34);}
+.post-nav-btn.arrow{min-width:42px;padding:8px 0;font-size:1rem;letter-spacing:0;line-height:1;}
 .btn-out{padding:9px 15px;background:transparent;color:var(--gold);border:1px solid rgba(200,150,60,.35);font-family:"DM Sans",sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
 #lb{display:none;position:fixed;inset:0;background:rgba(26,38,32,.24);z-index:5000;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
 #lb.open{display:flex;}
@@ -3063,7 +3064,7 @@ function openJournalEntry(fallId,rowId){
   var hasPrev=currentIndex>0;
   var hasNext=currentIndex>=0 && currentIndex<JOURNAL_NAV_ORDER.length-1;
   var navHtml=JOURNAL_NAV_ORDER.length>1
-    ? '<div class="post-nav"><div class="post-nav-meta"><div class="post-nav-kicker">Journal Navigation</div><div class="post-nav-copy">Swipe left or right to move through your saved visits, or use the buttons here.</div></div><div class="post-nav-actions"><button class="post-nav-btn" id="post-prev-log"'+(hasPrev?'':' disabled')+'>Previous</button><button class="post-nav-btn" id="post-next-log"'+(hasNext?'':' disabled')+'>Next</button></div></div>'
+    ? '<div class="post-nav"><div class="post-nav-meta"><div class="post-nav-kicker">Journal Navigation</div><div class="post-nav-copy">Tap the arrows to move through your saved visits.</div></div><div class="post-nav-actions"><button class="post-nav-btn arrow" id="post-prev-log" aria-label="Previous journal entry"'+(hasPrev?'':' disabled')+'>&larr;</button><button class="post-nav-btn" id="post-prev-log-text"'+(hasPrev?'':' disabled')+'>Previous</button><button class="post-nav-btn" id="post-next-log-text"'+(hasNext?'':' disabled')+'>Next</button><button class="post-nav-btn arrow" id="post-next-log" aria-label="Next journal entry"'+(hasNext?'':' disabled')+'>&rarr;</button></div></div>'
     : '';
   document.getElementById('post-bd').innerHTML=
     '<div class="post-abar"><div class="post-av">'+esc((ME&&ME.name?ME.name:'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc((ME&&ME.name)||'You')+'</div><div class="post-adt">'+esc((log.date||'')+(log.privacy?' · '+(log.privacy==='public'?'Public entry':'Private entry'):''))
@@ -3076,8 +3077,12 @@ function openJournalEntry(fallId,rowId){
     +'<div class="post-cta"><button class="btn-out" data-editvisit="'+esc(id)+'" data-rowid="'+esc(rowId)+'">Edit This Visit</button><button class="btn-out" data-goto="'+esc(id)+'" data-rowid="'+esc(rowId)+'">View Waterfall</button></div>';
   var prevBtn=document.getElementById('post-prev-log');
   var nextBtn=document.getElementById('post-next-log');
+  var prevTextBtn=document.getElementById('post-prev-log-text');
+  var nextTextBtn=document.getElementById('post-next-log-text');
   if(prevBtn) prevBtn.addEventListener('click',function(){openAdjacentJournalEntry(-1);});
   if(nextBtn) nextBtn.addEventListener('click',function(){openAdjacentJournalEntry(1);});
+  if(prevTextBtn) prevTextBtn.addEventListener('click',function(){openAdjacentJournalEntry(-1);});
+  if(nextTextBtn) nextTextBtn.addEventListener('click',function(){openAdjacentJournalEntry(1);});
   bindJournalSwipe();
   openOv('ov-post');
 }
