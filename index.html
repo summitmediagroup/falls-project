@@ -466,6 +466,14 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-gal img{width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;filter:brightness(.8) saturate(.8);}
 .post-gal video{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#08100b;}
 .post-cta{display:flex;gap:7px;}
+.post-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:10px 12px;border:1px solid rgba(200,150,60,.18);background:rgba(255,255,255,.04);}
+.post-nav-meta{min-width:0;flex:1;}
+.post-nav-kicker{font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:3px;}
+.post-nav-copy{font-size:.68rem;line-height:1.55;color:rgba(255,255,255,.64);}
+.post-nav-actions{display:flex;gap:7px;flex-shrink:0;}
+.post-nav-btn{padding:8px 11px;background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,.12);font-family:"DM Sans",sans-serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
+.post-nav-btn:hover{border-color:rgba(200,150,60,.34);color:var(--gold);}
+.post-nav-btn:disabled{opacity:.35;cursor:default;border-color:rgba(255,255,255,.08);color:rgba(255,255,255,.34);}
 .btn-out{padding:9px 15px;background:transparent;color:var(--gold);border:1px solid rgba(200,150,60,.35);font-family:"DM Sans",sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
 #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:5000;align-items:center;justify-content:center;cursor:zoom-out;}
 #lb.open{display:flex;}
@@ -513,6 +521,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
   #m-wf,#m-auth,#m-post{width:96vw;}
   .wf-body,.post-bd,.auth-bd{padding:13px 13px 18px;}
   .wf-overview-grid,.wf-gate-perks,.wf-check-grid{grid-template-columns:1fr;}
+  .post-nav{flex-direction:column;align-items:flex-start;}
+  .post-nav-actions{width:100%;}
+  .post-nav-btn{flex:1;text-align:center;}
   .frow{flex-direction:column;}
   .nav-brand-name{display:none;}
   .nav-brand img{width:38px;height:38px;}
@@ -1057,6 +1068,7 @@ var sbPublic = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
 });
 
 var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
+var JOURNAL_NAV_ORDER=[],JOURNAL_NAV_ACTIVE_KEY='',POST_TOUCH_X=0,POST_TOUCH_Y=0,POST_TOUCHING=false;
 var FALL_ALIASES={};
 var MAX_IMAGE_UPLOAD_BYTES=8*1024*1024;
 var MAX_VIDEO_UPLOAD_BYTES=35*1024*1024;
@@ -1103,6 +1115,51 @@ function canonicalFallId(id){
     current=FALL_ALIASES[current];
   }
   return current||String(id||'');
+}
+function makeJournalNavKey(fallId,rowId){
+  return canonicalFallId(fallId)+'::'+String(rowId||'');
+}
+function setJournalNavOrder(items){
+  JOURNAL_NAV_ORDER=(items||[]).map(function(item){
+    return {fallId:canonicalFallId(item.fallId),rowId:String(item.rowId||'')};
+  }).filter(function(item){return item.fallId && item.rowId;});
+}
+function openAdjacentJournalEntry(step){
+  if(!JOURNAL_NAV_ORDER.length || !JOURNAL_NAV_ACTIVE_KEY) return;
+  var currentIndex=-1;
+  for(var i=0;i<JOURNAL_NAV_ORDER.length;i++){
+    if(makeJournalNavKey(JOURNAL_NAV_ORDER[i].fallId,JOURNAL_NAV_ORDER[i].rowId)===JOURNAL_NAV_ACTIVE_KEY){
+      currentIndex=i;
+      break;
+    }
+  }
+  if(currentIndex<0) return;
+  var nextIndex=currentIndex+step;
+  if(nextIndex<0 || nextIndex>=JOURNAL_NAV_ORDER.length) return;
+  var target=JOURNAL_NAV_ORDER[nextIndex];
+  openJournalEntry(target.fallId,target.rowId);
+}
+function bindJournalSwipe(){
+  var modal=document.getElementById('m-post');
+  if(!modal || modal.dataset.swipeBound==='1') return;
+  modal.dataset.swipeBound='1';
+  modal.addEventListener('touchstart',function(e){
+    if(!e.touches || e.touches.length!==1) return;
+    POST_TOUCHING=true;
+    POST_TOUCH_X=e.touches[0].clientX;
+    POST_TOUCH_Y=e.touches[0].clientY;
+  },{passive:true});
+  modal.addEventListener('touchend',function(e){
+    if(!POST_TOUCHING || !e.changedTouches || !e.changedTouches.length) return;
+    POST_TOUCHING=false;
+    var dx=e.changedTouches[0].clientX-POST_TOUCH_X;
+    var dy=e.changedTouches[0].clientY-POST_TOUCH_Y;
+    if(Math.abs(dx)<55) return;
+    if(Math.abs(dx)<=Math.abs(dy)*1.2) return;
+    if(!document.getElementById('ov-post').classList.contains('open')) return;
+    if(dx<0) openAdjacentJournalEntry(1);
+    else openAdjacentJournalEntry(-1);
+  },{passive:true});
 }
 function getLogs(id){
   var fallId=canonicalFallId(id);
@@ -2950,6 +3007,7 @@ function openJournalEntry(fallId,rowId){
   }
   document.getElementById('ph-wf').textContent=f.region||'Your Trail Journal';
   document.getElementById('ph-title').textContent=f.name||'Journal Entry';
+  JOURNAL_NAV_ACTIVE_KEY=makeJournalNavKey(id,rowId);
   var hbg=document.getElementById('post-bg');
   var heroItems=log.photos&&log.photos.length?log.photos.slice(0,3):[fallHeroMeta(f).src];
   hbg.innerHTML=heroItems.map(function(x,i){
@@ -2970,26 +3028,48 @@ function openJournalEntry(fallId,rowId){
   if(log.improve) sections+='<div class="post-sec"><div class="post-sec-lbl">Could Be Better</div><div class="post-sec-txt">'+esc(log.improve)+'</div></div>';
   if(log.tips) sections+='<div class="post-sec"><div class="post-sec-lbl">Notes For Next Time</div><div class="post-sec-txt">'+esc(log.tips)+'</div></div>';
   var gallery=log.photos&&log.photos.length?'<div class="post-sec"><div class="post-sec-lbl">Your Trail Album</div><div class="post-gal">'+log.photos.map(function(x,i){return mediaIsVideo(x)?'<video src="'+esc(x)+'" controls playsinline preload="metadata"></video>':'<img src="'+esc(x)+'" alt="Trail photo '+(i+1)+'" data-lb="'+esc(x)+'">';}).join('')+'</div></div>':'';
+  var currentIndex=-1;
+  for(var i=0;i<JOURNAL_NAV_ORDER.length;i++){
+    if(makeJournalNavKey(JOURNAL_NAV_ORDER[i].fallId,JOURNAL_NAV_ORDER[i].rowId)===JOURNAL_NAV_ACTIVE_KEY){
+      currentIndex=i;
+      break;
+    }
+  }
+  var hasPrev=currentIndex>0;
+  var hasNext=currentIndex>=0 && currentIndex<JOURNAL_NAV_ORDER.length-1;
+  var navHtml=JOURNAL_NAV_ORDER.length>1
+    ? '<div class="post-nav"><div class="post-nav-meta"><div class="post-nav-kicker">Journal Navigation</div><div class="post-nav-copy">Swipe left or right to move through your saved visits, or use the buttons here.</div></div><div class="post-nav-actions"><button class="post-nav-btn" id="post-prev-log"'+(hasPrev?'':' disabled')+'>Previous</button><button class="post-nav-btn" id="post-next-log"'+(hasNext?'':' disabled')+'>Next</button></div></div>'
+    : '';
   document.getElementById('post-bd').innerHTML=
     '<div class="post-abar"><div class="post-av">'+esc((ME&&ME.name?ME.name:'?')[0].toUpperCase())+'</div><div><div class="post-anm">'+esc((ME&&ME.name)||'You')+'</div><div class="post-adt">'+esc((log.date||'')+(log.privacy?' · '+(log.privacy==='public'?'Public entry':'Private entry'):''))
     +'</div></div></div>'
     +(stats?'<div class="post-stats">'+stats+'</div>':'')
     +'<p class="post-story-intro">'+esc(intro)+'</p>'
+    +navHtml
     +gallery
     +sections
     +'<div class="post-cta"><button class="btn-out" data-editvisit="'+esc(id)+'" data-rowid="'+esc(rowId)+'">Edit This Visit</button><button class="btn-out" data-goto="'+esc(id)+'" data-rowid="'+esc(rowId)+'">View Waterfall</button></div>';
+  var prevBtn=document.getElementById('post-prev-log');
+  var nextBtn=document.getElementById('post-next-log');
+  if(prevBtn) prevBtn.addEventListener('click',function(){openAdjacentJournalEntry(-1);});
+  if(nextBtn) nextBtn.addEventListener('click',function(){openAdjacentJournalEntry(1);});
+  bindJournalSwipe();
   openOv('ov-post');
 }
 
 function renderJournal(){
   var mast=document.getElementById('jmast'),ent=document.getElementById('jentries');
   if(!ME){
+    setJournalNavOrder([]);
+    JOURNAL_NAV_ACTIVE_KEY='';
     mast.innerHTML='';
     ent.innerHTML='<div class="jempty"><h3>Your Trail Journal</h3><p>Sign in to browse your journal. Upgrade when you&#39;re ready to log your waterfall adventures.</p><button class="btn-gold" id="jauth" style="padding:11px 22px;margin-top:4px">Begin Your Journey</button></div>';
     var jb=document.getElementById('jauth');if(jb)jb.addEventListener('click',openAuth);
     return;
   }
   if(!ME.is_pro){
+    setJournalNavOrder([]);
+    JOURNAL_NAV_ACTIVE_KEY='';
     mast.innerHTML='';
     ent.innerHTML='<div class="jempty"><h3>Explorer Journal</h3><p>Map and Stories stay open to every member. Upgrade to remember where you have been, which waterfalls were worth it, and which ones are still left to chase. Introductory price: $3.99/month. Early members keep this price for life unless they cancel.</p><button class="btn-gold" id="jupgrade" style="padding:11px 22px;margin-top:4px">Log Your First Waterfall Story • $3.99</button></div>';
     var ju=document.getElementById('jupgrade');if(ju)ju.addEventListener('click',upgradeToPro);
@@ -3002,6 +3082,9 @@ function renderJournal(){
     });
     return acc;
   },[]).sort(function(a,b){return b.log.ts-a.log.ts;});
+  setJournalNavOrder(logs.map(function(entry){
+    return {fallId:entry.id,rowId:entry.log&&entry.log.rowId};
+  }));
   var distinctFalls=Object.keys(userLogs).filter(function(key){return (userLogs[key]||[]).length;}).length;
   var total=FALLS.length,vis=distinctFalls,sum=0,cnt=0;
   logs.forEach(function(e){if(e.log.rating){sum+=e.log.rating;cnt++;}});
@@ -3042,7 +3125,12 @@ function renderJournal(){
       toggleBadges.textContent=hidden?'See My Badges':'Hide My Badges';
     });
   }
-  if(!logs.length){ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';return;}
+  if(!logs.length){
+    setJournalNavOrder([]);
+    JOURNAL_NAV_ACTIVE_KEY='';
+    ent.innerHTML='<div class="jempty" style="padding:56px 0"><h3>No entries yet</h3><p>Open the map and start logging!</p></div>';
+    return;
+  }
   ent.innerHTML='';
   logs.forEach(function(e){
     var f=FALLS.find(function(x){return x.id===e.id;})||findFallByName(e.log&&e.log.waterfallName)||{name:(e.log&&e.log.waterfallName)||'Waterfall',region:'Needs Retagging'};
