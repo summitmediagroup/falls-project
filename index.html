@@ -440,7 +440,7 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .auth-sub{margin-top:4px;padding:11px;background:var(--gold);color:var(--bg);border:none;font-family:"DM Sans",sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:100%;border-radius:2px;}
 .auth-sub:hover{background:var(--amber);}
 .auth-note{text-align:center;font-size:.6rem;color:rgba(255,255,255,.15);margin-top:9px;}
-#m-post{width:580px;}
+#m-post{width:580px;touch-action:pan-y;}
 .post-hero{height:240px;position:relative;overflow:hidden;background:var(--raised);}
 .post-hero-bg{position:absolute;inset:0;display:flex;}
 .post-hero-bg img{flex:1;object-fit:cover;min-width:0;filter:brightness(.62) saturate(.75);}
@@ -475,9 +475,9 @@ body{font-family:"DM Sans",sans-serif;color:var(--cream);display:flex;flex-direc
 .post-nav-btn:hover{border-color:rgba(200,150,60,.34);color:var(--gold);}
 .post-nav-btn:disabled{opacity:.35;cursor:default;border-color:rgba(255,255,255,.08);color:rgba(255,255,255,.34);}
 .btn-out{padding:9px 15px;background:transparent;color:var(--gold);border:1px solid rgba(200,150,60,.35);font-family:"DM Sans",sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;border-radius:2px;}
-#lb{display:none;position:fixed;inset:0;background:rgba(7,12,10,.46);z-index:5000;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(10px);}
+#lb{display:none;position:fixed;inset:0;background:rgba(26,38,32,.24);z-index:5000;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
 #lb.open{display:flex;}
-#lb img{max-width:90vw;max-height:90vh;box-shadow:0 22px 60px rgba(0,0,0,.28);}
+#lb img{max-width:90vw;max-height:90vh;box-shadow:0 22px 60px rgba(0,0,0,.18);}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--raised);border:1px solid rgba(200,150,60,.3);color:var(--cream);padding:9px 18px;font-size:.72rem;z-index:9999;border-radius:2px;pointer-events:none;}
 /* Hidden photo store - images live in HTML, JS reads their src */
 #photo-store{display:none;}
@@ -1068,7 +1068,7 @@ var sbPublic = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{
 });
 
 var DB={users:{},posts:{}},ME=null,wfId=null,editingLogRowId=null,pPh=[],pPriv="public",pStar=0,fMode="all",MK={},MAP=null,USER_MARKER=null,USER_POS=null;
-var JOURNAL_NAV_ORDER=[],JOURNAL_NAV_ACTIVE_KEY='',POST_TOUCH_X=0,POST_TOUCH_Y=0,POST_TOUCHING=false,POST_JUST_SWIPED_AT=0;
+var JOURNAL_NAV_ORDER=[],JOURNAL_NAV_ACTIVE_KEY='',POST_TOUCH_X=0,POST_TOUCH_Y=0,POST_TOUCHING=false,POST_TOUCH_SWIPING=false,POST_JUST_SWIPED_AT=0;
 var FALL_ALIASES={};
 var MAX_IMAGE_UPLOAD_BYTES=8*1024*1024;
 var MAX_VIDEO_UPLOAD_BYTES=35*1024*1024;
@@ -1149,11 +1149,24 @@ function bindJournalSwipe(){
   modal.addEventListener('touchstart',function(e){
     if(!e.touches || e.touches.length!==1) return;
     POST_TOUCHING=true;
+    POST_TOUCH_SWIPING=false;
     POST_TOUCH_X=e.touches[0].clientX;
     POST_TOUCH_Y=e.touches[0].clientY;
   },{passive:true});
+  modal.addEventListener('touchmove',function(e){
+    if(!POST_TOUCHING || !e.touches || !e.touches.length) return;
+    var dx=e.touches[0].clientX-POST_TOUCH_X;
+    var dy=e.touches[0].clientY-POST_TOUCH_Y;
+    if(!POST_TOUCH_SWIPING){
+      if(Math.abs(dx)<16) return;
+      if(Math.abs(dx)<=Math.abs(dy)*1.1) return;
+      POST_TOUCH_SWIPING=true;
+    }
+    if(typeof e.preventDefault==='function') e.preventDefault();
+  },{passive:false});
   modal.addEventListener('touchcancel',function(){
     POST_TOUCHING=false;
+    POST_TOUCH_SWIPING=false;
   },{passive:true});
   modal.addEventListener('click',function(e){
     if(!postSwipeJustHappened()) return;
@@ -1164,9 +1177,8 @@ function bindJournalSwipe(){
     if(!POST_TOUCHING || !e.changedTouches || !e.changedTouches.length) return;
     POST_TOUCHING=false;
     var dx=e.changedTouches[0].clientX-POST_TOUCH_X;
-    var dy=e.changedTouches[0].clientY-POST_TOUCH_Y;
-    if(Math.abs(dx)<55) return;
-    if(Math.abs(dx)<=Math.abs(dy)*1.2) return;
+    POST_TOUCH_SWIPING=POST_TOUCH_SWIPING || Math.abs(dx)>=60;
+    if(!POST_TOUCH_SWIPING) return;
     if(!document.getElementById('ov-post').classList.contains('open')) return;
     POST_JUST_SWIPED_AT=Date.now();
     if(typeof e.preventDefault==='function') e.preventDefault();
