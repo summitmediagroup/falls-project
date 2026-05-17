@@ -1570,9 +1570,37 @@ function toggleSaved(id){
   setSavedFalls(list);
   return saved;
 }
-function mapLabel(v){return encodeURIComponent(String(v||'Waterfall'));} 
-function googleMapsUrl(f){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(f.lat+','+f.lng)+'&travelmode=driving';}
-function appleMapsUrl(f){return 'https://maps.apple.com/?daddr='+encodeURIComponent(f.lat+','+f.lng)+'&dirflg=d&q='+mapLabel(f.name);}
+function mapLabel(v){return encodeURIComponent(String(v||'Waterfall'));}
+function routeTargetFor(f){
+  var navLat=numOrNull(f&&f.nav_lat);
+  var navLng=numOrNull(f&&f.nav_lng);
+  if(navLat!==null && navLng!==null){
+    return {kind:'coords',value:navLat+','+navLng};
+  }
+  var navAddress=String((f&&f.nav_address)||'').trim();
+  if(navAddress) return {kind:'address',value:navAddress};
+  var address=String((f&&f.address)||'').trim();
+  if(address) return {kind:'address',value:address};
+  var lat=numOrNull(f&&f.lat);
+  var lng=numOrNull(f&&f.lng);
+  if(lat!==null && lng!==null){
+    return {kind:'coords',value:lat+','+lng};
+  }
+  return null;
+}
+function hasDirectionsTarget(f){
+  return !!routeTargetFor(f);
+}
+function googleMapsUrl(f){
+  var target=routeTargetFor(f);
+  if(!target) return '#';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(target.value)+'&travelmode=driving';
+}
+function appleMapsUrl(f){
+  var target=routeTargetFor(f);
+  if(!target) return '#';
+  return 'https://maps.apple.com/?daddr='+encodeURIComponent(target.value)+'&dirflg=d&q='+mapLabel(f.name);
+}
 function slugify(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');}
 function pickFirst(row, keys){
   for(var i=0;i<keys.length;i++){
@@ -1638,6 +1666,8 @@ function normalizeFallRow(row){
   var stateInfo=normalizeState(pickFirst(row,['state','state_code']));
   var regionLabel=region || stateInfo.name || 'Waterfall Region';
   var dogFriendly=String(pickFirst(row,['dog_friendly','dogfriendly','dogs'])||'').trim().toLowerCase();
+  var navLat=numOrNull(pickFirst(row,['nav_lat','navigation_lat','parking_lat','trailhead_lat']));
+  var navLng=numOrNull(pickFirst(row,['nav_lng','nav_lon','nav_long','navigation_lng','navigation_lon','parking_lng','parking_lon','trailhead_lng','trailhead_lon']));
   return {
     id:id||mkid(),
     merge_key:slugify((stateInfo.code||stateInfo.name||'')+'_'+String(name).trim()),
@@ -1657,6 +1687,10 @@ function normalizeFallRow(row){
     best_for:String(pickFirst(row,['best_for','bestfor','good_for'])||'').trim(),
     trail_feel:String(pickFirst(row,['trail_feel','trailfeel','hike_feel'])||'').trim(),
     know_before_you_go:String(pickFirst(row,['know_before_you_go','knowbeforeyougo','before_you_go','heads_up'])||'').trim(),
+    address:String(pickFirst(row,['address','directions_address','location_address'])||'').trim(),
+    nav_address:String(pickFirst(row,['nav_address','navigation_address','parking_address','trailhead_address'])||'').trim(),
+    nav_lat:navLat,
+    nav_lng:navLng,
     image_url:String(pickFirst(row,['image_url','image','hero_image','hero','photo_url'])||'').trim(),
     image_credit:String(pickFirst(row,['image_credit','credit','image_source'])||'').trim(),
     image_credit_url:String(pickFirst(row,['image_credit_url','credit_url','image_source_url'])||'').trim(),
@@ -2705,7 +2739,7 @@ function openWF(id,rowId){
   var savedLabel=effectiveId&&isSaved(effectiveId)?'Remove from Saved':'Save to Visit';
   document.getElementById('wf-actions').innerHTML=
     (effectiveId?'<button class="btn-out" type="button" id="btn-save-visit">'+savedLabel+'</button>':'')
-    +(f.lat&&f.lng?'<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
+    +(hasDirectionsTarget(f)?'<a class="btn-out" href="'+googleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>'
     +'<a class="btn-out" href="'+appleMapsUrl(f)+'" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>':'');
   var saveBtn=document.getElementById('btn-save-visit');
   if(saveBtn) saveBtn.addEventListener('click',function(e){
