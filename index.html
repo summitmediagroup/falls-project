@@ -914,6 +914,9 @@ function heroFor(id) {
 }
 function fallHero(f) {
   if(f && typeof f==='object'){
+    var submission=publicHeroSubmissionForFall(f.id);
+    var submissionHero=submission && submission.photos ? pickCoverMedia(submission.photos) : '';
+    if(submissionHero) return submissionHero;
     var custom=f.image_url||f.image||f.hero_image||f.hero||'';
     if(custom) return custom;
     return heroFor(f.id||'');
@@ -951,22 +954,22 @@ function escAttr(s){
 function fallHeroMeta(f){
   if(!f) return {src:heroFor('fallback'),creditHtml:''};
   var submission=publicHeroSubmissionForFall(f.id);
+  var submissionHero=submission && submission.photos ? pickCoverMedia(submission.photos) : '';
   var custom=f.image_url||f.image||f.hero_image||f.hero||'';
   var credit=String(f.image_credit||f.credit||f.image_source||'').trim();
   var creditUrl=String(f.image_credit_url||f.credit_url||f.image_source_url||'').trim();
+  if(submissionHero){
+    return {
+      src:submissionHero,
+      creditHtml:'Submitted by '+esc(handleForUsername(submission.authorName||'Explorer'))
+    };
+  }
   if(custom){
     return {
       src:custom,
       creditHtml:credit
         ? ('Image courtesy of '+(creditUrl?'<a href="'+esc(creditUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(credit)+'</a>':esc(credit)))
         : ''
-    };
-  }
-  var submissionHero=submission && submission.photos ? pickCoverMedia(submission.photos) : '';
-  if(submissionHero){
-    return {
-      src:submissionHero,
-      creditHtml:'Submitted by '+esc(handleForUsername(submission.authorName||'Explorer'))
     };
   }
   return {src:heroFor(f.id||''),creditHtml:''};
